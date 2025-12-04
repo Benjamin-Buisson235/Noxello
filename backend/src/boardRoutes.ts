@@ -86,14 +86,17 @@ boardRoutes.post('/:id/lists', async (req: AuthRequest, res) => {
       return res.status(404).json({ message: 'Board not found' });
     }
 
-    const count = await prisma.list.count({
+    const last = await prisma.list.findFirst({
       where: { boardId },
+      orderBy: { position: 'desc' },
+      select: { position: true },
     });
+    const position = last ? last.position + 1 : 0;
 
     const list = await prisma.list.create({
       data: {
         title: title.trim(),
-        position: count,
+        position,
         boardId,
       },
     });
@@ -239,14 +242,17 @@ boardRoutes.post(
         return res.status(404).json({ message: 'List not found' });
       }
 
-      const count = await prisma.card.count({
+      const last = await prisma.card.findFirst({
         where: { listId },
+        orderBy: { position: 'desc' },
+        select: { position: true },
       });
+      const position = last ? last.position + 1 : 0;
 
       const card = await prisma.card.create({
         data: {
           title: title.trim(),
-          position: count,
+          position,
           listId,
         },
       });
