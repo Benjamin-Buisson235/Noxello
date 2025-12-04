@@ -148,6 +148,33 @@ function BoardDetailPage() {
     }
   };
 
+  const handleReorderLists = async (listId: number, direction: 'left' | 'right') => {
+    if (!lists.length) return;
+
+    const currentIndex = lists.findIndex((l: any) => l.id === listId);
+    if (currentIndex === -1) return;
+
+    const targetIndex =
+      direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+
+    if (targetIndex < 0 || targetIndex >= lists.length) return;
+
+    const reordered = [...lists];
+    const [moved] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+
+    setLists(reordered.map((list: any, index: number) => ({ ...list, position: index })));
+
+    try {
+      await api.patch(`/boards/${id}/lists/reorder`, {
+        orderedListIds: reordered.map((l: any) => l.id),
+      });
+    } catch (err) {
+      console.error('Reorder lists error ====>', err);
+      fetchBoardFull();
+    }
+  };
+
   const handleDeleteList = (
     e: React.MouseEvent,
     listId: number,
@@ -271,6 +298,49 @@ function BoardDetailPage() {
       );
     } catch (err) {
       console.error('Move card error ====>', err);
+    }
+  };
+
+  const handleReorderCard = async (
+    listId: number,
+    cardId: number,
+    direction: 'up' | 'down'
+  ) => {
+    const list = lists.find((l: any) => l.id === listId);
+    if (!list) return;
+    const cards = list.cards || [];
+    const currentIndex = cards.findIndex((c: any) => c.id === cardId);
+    if (currentIndex === -1) return;
+
+    const targetIndex =
+      direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= cards.length) return;
+
+    const reordered = [...cards];
+    const [moved] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+
+    setLists((prev) =>
+      prev.map((l: any) =>
+        l.id === listId
+          ? {
+              ...l,
+              cards: reordered.map((c: any, index: number) => ({
+                ...c,
+                position: index,
+              })),
+            }
+          : l
+      )
+    );
+
+    try {
+      await api.patch(`/boards/${id}/lists/${listId}/cards/reorder`, {
+        orderedCardIds: reordered.map((c: any) => c.id),
+      });
+    } catch (err) {
+      console.error('Reorder cards error ====>', err);
+      fetchBoardFull();
     }
   };
 
@@ -441,6 +511,32 @@ function BoardDetailPage() {
                       {list.title}
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end' }}>
+                        <button
+                          className="button button-ghost"
+                          style={{
+                            padding: '2px 6px',
+                            fontSize: 10,
+                            lineHeight: 1,
+                          }}
+                          onClick={() => handleReorderLists(list.id, 'left')}
+                          disabled={listIndex === 0}
+                        >
+                          ←
+                        </button>
+                        <button
+                          className="button button-ghost"
+                          style={{
+                            padding: '2px 6px',
+                            fontSize: 10,
+                            lineHeight: 1,
+                          }}
+                          onClick={() => handleReorderLists(list.id, 'right')}
+                          disabled={listIndex === lists.length - 1}
+                        >
+                          →
+                        </button>
+                      </div>
                       <button
                         className="button button-ghost"
                         style={{
@@ -527,6 +623,36 @@ function BoardDetailPage() {
                         >
                           <span>{card.title}</span>
                           <div style={{ display: 'flex', gap: 4 }}>
+                            <button
+                              type="button"
+                              className="button button-ghost"
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: 10,
+                                lineHeight: 1,
+                              }}
+                              onClick={() =>
+                                handleReorderCard(list.id, card.id, 'up')
+                              }
+                              disabled={cardIndex === 0}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-ghost"
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: 10,
+                                lineHeight: 1,
+                              }}
+                              onClick={() =>
+                                handleReorderCard(list.id, card.id, 'down')
+                              }
+                              disabled={cardIndex === cards.length - 1}
+                            >
+                              ↓
+                            </button>
                             <button
                               type="button"
                               className="button button-ghost"
