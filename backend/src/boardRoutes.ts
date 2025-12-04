@@ -108,6 +108,68 @@ boardRoutes.post('/:id/lists', async (req: AuthRequest, res) => {
   }
 });
 
+boardRoutes.patch('/:id/lists/reorder', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.id);
+    const { orderedListIds } = req.body;
+
+    if (!Array.isArray(orderedListIds) || orderedListIds.length < 1) {
+      return res
+        .status(400)
+        .json({ message: 'orderedListIds must be a non-empty array' });
+    }
+
+    const listIds = orderedListIds.map((id: string | number) => Number(id));
+    if (listIds.some((id) => Number.isNaN(id))) {
+      return res
+        .status(400)
+        .json({ message: 'orderedListIds must contain only numbers' });
+    }
+
+    const uniqueIds = Array.from(new Set(listIds));
+    if (uniqueIds.length !== listIds.length) {
+      return res
+        .status(400)
+        .json({ message: 'orderedListIds must be unique' });
+    }
+
+    const board = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+    });
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const lists = await prisma.list.findMany({
+      where: { id: { in: uniqueIds }, boardId },
+      select: { id: true },
+    });
+    if (lists.length !== uniqueIds.length) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    await prisma.$transaction(
+      uniqueIds.map((id, index) =>
+        prisma.list.update({
+          where: { id },
+          data: { position: index },
+        })
+      )
+    );
+
+    const updated = await prisma.list.findMany({
+      where: { boardId },
+      orderBy: { position: 'asc' },
+    });
+
+    return res.json({ lists: updated });
+  } catch (err) {
+    console.error('Reorder lists error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 boardRoutes.put('/:boardId/lists/:listId', async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!;
@@ -260,6 +322,79 @@ boardRoutes.post(
       return res.status(201).json({ card });
     } catch (err) {
       console.error('Create card error ====>', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+boardRoutes.patch(
+  '/:boardId/lists/:listId/cards/reorder',
+  async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = Number(req.params.boardId);
+      const listId = Number(req.params.listId);
+      const { orderedCardIds } = req.body;
+
+      if (!Array.isArray(orderedCardIds) || orderedCardIds.length < 1) {
+        return res
+          .status(400)
+          .json({ message: 'orderedCardIds must be a non-empty array' });
+      }
+
+      const cardIds = orderedCardIds.map((id: string | number) => Number(id));
+      if (cardIds.some((id) => Number.isNaN(id))) {
+        return res
+          .status(400)
+          .json({ message: 'orderedCardIds must contain only numbers' });
+      }
+
+      const uniqueIds = Array.from(new Set(cardIds));
+      if (uniqueIds.length !== cardIds.length) {
+        return res
+          .status(400)
+          .json({ message: 'orderedCardIds must be unique' });
+      }
+
+      const board = await prisma.board.findFirst({
+        where: { id: boardId, ownerId: userId },
+      });
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      const list = await prisma.list.findFirst({
+        where: { id: listId, boardId },
+      });
+      if (!list) {
+        return res.status(404).json({ message: 'List not found' });
+      }
+
+      const cards = await prisma.card.findMany({
+        where: { id: { in: uniqueIds }, listId },
+        select: { id: true },
+      });
+      if (cards.length !== uniqueIds.length) {
+        return res.status(404).json({ message: 'Card not found' });
+      }
+
+      await prisma.$transaction(
+        uniqueIds.map((id, index) =>
+          prisma.card.update({
+            where: { id },
+            data: { position: index },
+          })
+        )
+      );
+
+      const updated = await prisma.card.findMany({
+        where: { listId },
+        orderBy: { position: 'asc' },
+      });
+
+      return res.json({ cards: updated });
+    } catch (err) {
+      console.error('Reorder cards error ====>', err);
       return res.status(500).json({ message: 'Internal server error' });
     }
   }
