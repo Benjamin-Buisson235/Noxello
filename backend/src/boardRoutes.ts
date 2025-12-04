@@ -381,6 +381,37 @@ boardRoutes.get('/:id', async (req: AuthRequest, res) => {
   }
 });
 
+boardRoutes.get('/:id/full', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.id);
+
+    const board = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+      include: {
+        lists: {
+          orderBy: { position: 'asc' },
+          include: {
+            cards: {
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const { lists, ...boardData } = board;
+    return res.json({ board: boardData, lists });
+  } catch (err) {
+    console.error('Get board full error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 boardRoutes.put('/:id', async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!;
