@@ -10,14 +10,12 @@ function BoardDetailPage() {
   const [user, setUser] = useState(null);
   const [board, setBoard] = useState(null);
   const [lists, setLists] = useState([]);
-  const [cardsByList, setCardsByList] = useState<{ [key: number]: any[] }>({});
   const [newListTitle, setNewListTitle] = useState('');
   const [newCardTitleByList, setNewCardTitleByList] = useState<{ [key: number]: string }>({});
   const [activeCardListId, setActiveCardListId] = useState<number | null>(null);
 
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingBoard, setLoadingBoard] = useState(true);
-  const [loadingLists, setLoadingLists] = useState(true);
   const [error, setError] = useState(null);
 
   const [listToDelete, setListToDelete] = useState<null | { id: number; title: string }>(null);
@@ -53,6 +51,27 @@ function BoardDetailPage() {
     gap: 10,
   };
 
+  const fetchBoardFull = async () => {
+    if (!user || !id) return;
+    try {
+      setLoadingBoard(true);
+      setError(null);
+      const res = await api.get(`/boards/${id}/full`);
+      setBoard(res.data.board);
+      setLists(res.data.lists || []);
+    } catch (err) {
+      console.error('Fetch board full error ====>', err);
+      const status = err?.response?.status;
+      if (status === 404) {
+        setError("This board doesn't exist or doesn't belong to you.");
+      } else {
+        setError('Unable to load this board.');
+      }
+    } finally {
+      setLoadingBoard(false);
+    }
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -75,59 +94,7 @@ function BoardDetailPage() {
   }, [navigate]);
 
   useEffect(() => {
-    if (!user || !id) return;
-
-    const fetchBoard = async () => {
-      try {
-        setLoadingBoard(true);
-        setError(null);
-        const res = await api.get(`/boards/${id}`);
-        setBoard(res.data.board);
-      } catch (err) {
-        console.error('Fetch board error ====>', err);
-        const status = err?.response?.status;
-        if (status === 404) {
-          setError("This board doesn't exist or doesn't belong to you.");
-        } else {
-          setError('Unable to load this board.');
-        }
-      } finally {
-        setLoadingBoard(false);
-      }
-    };
-
-    fetchBoard();
-  }, [user, id]);
-
-  useEffect(() => {
-    if (!user || !id) return;
-
-    const fetchListsAndCards = async () => {
-      try {
-        setLoadingLists(true);
-        const res = await api.get(`/boards/${id}/lists`);
-        const fetchedLists = res.data.lists || [];
-        setLists(fetchedLists);
-
-        const cardsObj: { [key: number]: any[] } = {};
-        for (const list of fetchedLists) {
-          try {
-            const cardsRes = await api.get(`/boards/${id}/lists/${list.id}/cards`);
-            cardsObj[list.id] = cardsRes.data.cards || [];
-          } catch (err) {
-            console.error('Fetch cards error ====>', err);
-            cardsObj[list.id] = [];
-          }
-        }
-        setCardsByList(cardsObj);
-      } catch (err) {
-        console.error('Fetch lists error ====>', err);
-      } finally {
-        setLoadingLists(false);
-      }
-    };
-
-    fetchListsAndCards();
+    fetchBoardFull();
   }, [user, id]);
 
   const handleBack = () => {
@@ -149,8 +116,7 @@ function BoardDetailPage() {
         title: newListTitle.trim(),
       });
       const list = res.data.list;
-      setLists((prev) => [...prev, list]);
-      setCardsByList((prev) => ({ ...prev, [list.id]: [] }));
+      setLists((prev) => [...prev, { ...list, cards: [] }]);
       setNewListTitle('');
     } catch (err) {
       console.error('Create list error ====>', err);
@@ -196,11 +162,6 @@ function BoardDetailPage() {
     try {
       await api.delete(`/boards/${id}/lists/${listToDelete.id}`);
       setLists((prev) => prev.filter((l: any) => l.id !== listToDelete.id));
-      setCardsByList((prev) => {
-        const copy = { ...prev };
-        delete copy[listToDelete.id];
-        return copy;
-      });
     } catch (err) {
       console.error('Delete list error ====>', err);
     } finally {
@@ -237,10 +198,13 @@ function BoardDetailPage() {
         title,
       });
       const card = res.data.card;
-      setCardsByList((prev) => ({
-        ...prev,
-        [listId]: [...(prev[listId] || []), card],
-      }));
+      setLists((prev) =>
+        prev.map((list: any) =>
+          list.id === listId
+            ? { ...list, cards: [...(list.cards || []), card] }
+            : list
+        )
+      );
       setNewCardTitleByList((prev) => ({ ...prev, [listId]: '' }));
       setActiveCardListId(null);
     } catch (err) {
@@ -270,23 +234,34 @@ function BoardDetailPage() {
 
     const targetList = lists[targetIndex];
 
-    setCardsByList((prev) => {
-      const sourceCards = [...(prev[fromListId] || [])];
-      const targetCards = [...(prev[targetList.id] || [])];
+    setLists((prev) => {
+      const sourceIndex = prev.findIndex((l: any) => l.id === fromListId);
+      const targetIndexLocal = prev.findIndex(
+        (l: any) => l.id === targetList.id
+      );
+      if (sourceIndex === -1 || targetIndexLocal === -1) return prev;
 
-      const idx = sourceCards.findIndex((c) => c.id === card.id);
+      const sourceList = prev[sourceIndex];
+      const targetListLocal = prev[targetIndexLocal];
+      const sourceCards = [...(sourceList.cards || [])];
+      const targetCards = [...(targetListLocal.cards || [])];
+
+      const idx = sourceCards.findIndex((c: any) => c.id === card.id);
       if (idx === -1) return prev;
 
       const [removed] = sourceCards.splice(idx, 1);
-      removed.listId = targetList.id;
-
+      removed.listId = targetListLocal.id;
       targetCards.push(removed);
 
-      return {
-        ...prev,
-        [fromListId]: sourceCards,
-        [targetList.id]: targetCards,
-      };
+      return prev.map((list: any) => {
+        if (list.id === sourceList.id) {
+          return { ...list, cards: sourceCards };
+        }
+        if (list.id === targetListLocal.id) {
+          return { ...list, cards: targetCards };
+        }
+        return list;
+      });
     });
 
     try {
@@ -312,11 +287,16 @@ function BoardDetailPage() {
 
     const { listId, id: cardId } = cardToDelete;
 
-    setCardsByList((prev) => {
-      const listCards = prev[listId] || [];
-      const filtered = listCards.filter((c) => c.id !== cardId);
-      return { ...prev, [listId]: filtered };
-    });
+    setLists((prev) =>
+      prev.map((list: any) =>
+        list.id === listId
+          ? {
+              ...list,
+              cards: (list.cards || []).filter((c: any) => c.id !== cardId),
+            }
+          : list
+      )
+    );
 
     try {
       await api.delete(`/boards/${id}/lists/${listId}/cards/${cardId}`);
@@ -398,7 +378,7 @@ function BoardDetailPage() {
             Add
           </button>
         </form>
-        {loadingLists && (
+        {loadingBoard && (
           <p className="text-muted" style={{ marginTop: 8 }}>
             Loading columns…
           </p>
@@ -422,8 +402,8 @@ function BoardDetailPage() {
               marginTop: 8,
             }}
           >
-            {lists.map((list: any) => {
-              const cards = cardsByList[list.id] || [];
+            {lists.map((list: any, listIndex: number) => {
+              const cards = list.cards || [];
               const cardTitle = newCardTitleByList[list.id] || '';
 
               return (
@@ -523,7 +503,7 @@ function BoardDetailPage() {
                       gap: 6,
                     }}
                   >
-                    {cards.map((card) => (
+                    {cards.map((card: any, cardIndex: number) => (
                       <div
                         key={card.id}
                         style={{
