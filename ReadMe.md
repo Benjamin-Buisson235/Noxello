@@ -63,6 +63,7 @@ Main routes:
 - `GET /boards` – list boards for the logged-in user
 - `POST /boards` – create a new board
 - `GET /boards/:id` – get a single board
+- `GET /boards/:id/full` – get a board with its lists + cards (ordered by position)
 - `PUT /boards/:id` – rename a board
 - `DELETE /boards/:id` – delete a board
 
@@ -70,6 +71,7 @@ Main routes:
 
 - `GET /boards/:id/lists` – list columns of a board
 - `POST /boards/:id/lists` – create a column in a board
+- `PATCH /boards/:id/lists/reorder` – reorder columns in a board
 - `PUT /boards/:boardId/lists/:listId` – rename a column
 - `DELETE /boards/:boardId/lists/:listId` – delete a column
 
@@ -77,6 +79,7 @@ Main routes:
 
 - `GET /boards/:boardId/lists/:listId/cards` – list cards in a column
 - `POST /boards/:boardId/lists/:listId/cards` – create a card
+- `PATCH /boards/:boardId/lists/:listId/cards/reorder` – reorder cards in a column
 - `PUT /boards/:boardId/lists/:listId/cards/:cardId/move` – move a card to another column
 - `DELETE /boards/:boardId/lists/:listId/cards/:cardId` – delete a card
 
@@ -155,10 +158,13 @@ Inside each column:
 - Each card has:
   - its title
   - a **Move left** / **Move right** button to send it to the previous/next column
+  - a **Move to list** dropdown to send it to any column
+  - **Move up** / **Move down** buttons to reorder within a column
   - a **Delete** button
 - Deleting a card also uses a custom confirmation modal
 
 Card movement is not drag & drop yet, but the move API and left/right behaviour are in place and persist to the database.
+Column and card reordering are supported via explicit reorder endpoints.
 
 ### Interface / UX
 
@@ -226,7 +232,8 @@ npm run dev
 ```
 
 - The frontend runs on `http://localhost:5173`
-- Axios configuration uses `http://localhost:4000` as `baseURL`
+- Axios configuration uses `VITE_API_URL` when defined, otherwise defaults to `http://localhost:4000`
+  - See `frontend/.env.example` for the expected env var name
 
 ---
 
