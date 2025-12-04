@@ -301,6 +301,36 @@ function BoardDetailPage() {
     }
   };
 
+  const handleMoveCardToList = async (fromListId: number, card: any, targetListId: number) => {
+    if (fromListId === targetListId) return;
+
+    setLists((prev) => {
+      const sourceList = prev.find((l: any) => l.id === fromListId);
+      const targetList = prev.find((l: any) => l.id === targetListId);
+      if (!sourceList || !targetList) return prev;
+
+      const sourceCards = (sourceList.cards || []).filter(
+        (c: any) => c.id !== card.id
+      );
+      const targetCards = [...(targetList.cards || []), { ...card, listId: targetListId }];
+
+      return prev.map((l: any) => {
+        if (l.id === fromListId) return { ...l, cards: sourceCards };
+        if (l.id === targetListId) return { ...l, cards: targetCards };
+        return l;
+      });
+    });
+
+    try {
+      await api.put(`/boards/${id}/lists/${fromListId}/cards/${card.id}/move`, {
+        targetListId,
+      });
+    } catch (err) {
+      console.error('Move card to list error ====>', err);
+      fetchBoardFull();
+    }
+  };
+
   const handleReorderCard = async (
     listId: number,
     cardId: number,
@@ -623,6 +653,30 @@ function BoardDetailPage() {
                         >
                           <span>{card.title}</span>
                           <div style={{ display: 'flex', gap: 4 }}>
+                            <select
+                              value={list.id}
+                              onChange={(e) =>
+                                handleMoveCardToList(
+                                  list.id,
+                                  card,
+                                  Number(e.target.value)
+                                )
+                              }
+                              style={{
+                                borderRadius: 6,
+                                padding: '2px 6px',
+                                fontSize: 10,
+                                border: '1px solid rgba(157,78,221,0.55)',
+                                backgroundColor: 'rgba(11, 15, 35, 0.9)',
+                                color: '#f9f5ff',
+                              }}
+                            >
+                              {lists.map((l: any) => (
+                                <option key={l.id} value={l.id}>
+                                  {l.title}
+                                </option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               className="button button-ghost"
