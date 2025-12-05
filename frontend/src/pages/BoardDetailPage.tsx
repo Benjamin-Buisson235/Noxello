@@ -65,6 +65,8 @@ function SortableCard({
   card,
   list,
   lists,
+  moveTargets,
+  currentBoardTitle,
   cardIndex,
   cardsLength,
   handleMoveCardToList,
@@ -75,11 +77,14 @@ function SortableCard({
   card: any;
   list: any;
   lists: any[];
+  moveTargets: any[];
+  currentBoardTitle: string;
   cardIndex: number;
   cardsLength: number;
   handleMoveCardToList: (
     fromListId: number,
     card: any,
+    targetBoardId: number,
     targetListId: number
   ) => void;
   handleReorderCard: (listId: number, cardId: number, direction: 'up' | 'down') => void;
@@ -100,6 +105,15 @@ function SortableCard({
     transition,
     opacity: isDragging ? 0.7 : 1,
   };
+  const targets = moveTargets.length
+    ? moveTargets
+    : lists.map((l: any) => ({
+        boardId: list.boardId,
+        boardTitle: currentBoardTitle,
+        listId: l.id,
+        listTitle: l.title,
+      }));
+  const selectedValue = `${list.boardId}:${list.id}`;
 
   return (
     <div
@@ -146,14 +160,16 @@ function SortableCard({
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           <select
-            value={list.id}
-            onChange={(e) =>
-              handleMoveCardToList(
-                list.id,
-                card,
-                Number(e.target.value)
-              )
-            }
+            value={selectedValue}
+            onChange={(e) => {
+              const [targetBoardId, targetListId] = e.target.value
+                .split(':')
+                .map((value) => Number(value));
+              if (Number.isNaN(targetBoardId) || Number.isNaN(targetListId)) {
+                return;
+              }
+              handleMoveCardToList(list.id, card, targetBoardId, targetListId);
+            }}
             style={{
               borderRadius: 6,
               padding: '2px 6px',
@@ -164,9 +180,12 @@ function SortableCard({
             }}
             onClick={(event) => event.stopPropagation()}
           >
-            {lists.map((l: any) => (
-              <option key={l.id} value={l.id}>
-                {l.title}
+            {targets.map((target: any) => (
+              <option
+                key={`${target.boardId}:${target.listId}`}
+                value={`${target.boardId}:${target.listId}`}
+              >
+                {target.boardTitle}: {target.listTitle}
               </option>
             ))}
           </select>
@@ -260,6 +279,7 @@ function BoardDetailPage() {
   const [user, setUser] = useState(null);
   const [board, setBoard] = useState(null);
   const [lists, setLists] = useState([]);
+  const [moveTargets, setMoveTargets] = useState([]);
   const [newListTitle, setNewListTitle] = useState('');
   const [newCardTitleByList, setNewCardTitleByList] = useState<{ [key: number]: string }>({});
   const [activeCardListId, setActiveCardListId] = useState<number | null>(null);
@@ -334,6 +354,17 @@ function BoardDetailPage() {
     }
   };
 
+  const fetchMoveTargets = async () => {
+    if (!user || !id) return;
+    try {
+      const res = await api.get(`/boards/${id}/move-targets`);
+      setMoveTargets(res.data.targets || []);
+    } catch (err) {
+      console.error('Fetch move targets error ====>', err);
+      fetchBoardFull();
+    }
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -357,6 +388,7 @@ function BoardDetailPage() {
 
   useEffect(() => {
     fetchBoardFull();
+    fetchMoveTargets();
   }, [user, id]);
 
   const handleBack = () => {
@@ -566,14 +598,22 @@ function BoardDetailPage() {
   const handleMoveCardToList = async (
     fromListId: number,
     card: any,
+    targetBoardId: number,
     targetListId: number
   ) => {
-    if (fromListId === targetListId) return;
+    const sourceBoardId = Number(id);
+    if (
+      sourceBoardId === targetBoardId &&
+      fromListId === targetListId
+    ) {
+      return;
+    }
 
     try {
-      await api.put(`/boards/${id}/lists/${fromListId}/cards/${card.id}/move`, {
-        targetListId,
-      });
+      await api.put(
+        `/boards/${id}/lists/${fromListId}/cards/${card.id}/move-to-list`,
+        { targetBoardId, targetListId }
+      );
       fetchBoardFull();
     } catch (err) {
       console.error('Move card to list error ====>', err);
@@ -1058,6 +1098,8 @@ function BoardDetailPage() {
                           card={card}
                           list={list}
                           lists={lists}
+                          moveTargets={moveTargets}
+                          currentBoardTitle={board?.title || 'Board'}
                           cardIndex={cardIndex}
                           cardsLength={cards.length}
                           handleMoveCardToList={handleMoveCardToList}

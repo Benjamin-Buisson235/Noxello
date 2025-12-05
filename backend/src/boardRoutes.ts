@@ -461,6 +461,94 @@ boardRoutes.put(
   }
 );
 
+boardRoutes.put(
+  '/:sourceBoardId/lists/:sourceListId/cards/:cardId/move-to-list',
+  async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const sourceBoardId = Number(req.params.sourceBoardId);
+      const sourceListId = Number(req.params.sourceListId);
+      const cardId = Number(req.params.cardId);
+      const { targetBoardId, targetListId } = req.body;
+
+      if (!targetBoardId || !targetListId) {
+        return res
+          .status(400)
+          .json({ message: 'targetBoardId and targetListId are required' });
+      }
+
+      const parsedTargetBoardId = Number(targetBoardId);
+      const parsedTargetListId = Number(targetListId);
+      if (Number.isNaN(parsedTargetBoardId) || Number.isNaN(parsedTargetListId)) {
+        return res
+          .status(400)
+          .json({ message: 'targetBoardId and targetListId must be numbers' });
+      }
+
+      const sourceBoard = await prisma.board.findFirst({
+        where: { id: sourceBoardId, ownerId: userId },
+      });
+      if (!sourceBoard) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      const targetBoard = await prisma.board.findFirst({
+        where: { id: parsedTargetBoardId, ownerId: userId },
+      });
+      if (!targetBoard) {
+        return res.status(404).json({ message: 'Target board not found' });
+      }
+
+      const sourceList = await prisma.list.findFirst({
+        where: { id: sourceListId, boardId: sourceBoardId },
+      });
+      if (!sourceList) {
+        return res.status(404).json({ message: 'List not found' });
+      }
+
+      const card = await prisma.card.findFirst({
+        where: {
+          id: cardId,
+          list: {
+            id: sourceListId,
+            boardId: sourceBoardId,
+          },
+        },
+      });
+      if (!card) {
+        return res.status(404).json({ message: 'Card not found' });
+      }
+
+      const targetList = await prisma.list.findFirst({
+        where: { id: parsedTargetListId, boardId: parsedTargetBoardId },
+      });
+      if (!targetList) {
+        return res.status(404).json({ message: 'Target list not found' });
+      }
+
+      const last = await prisma.card.findFirst({
+        where: { listId: parsedTargetListId },
+        orderBy: { position: 'desc' },
+        select: { position: true },
+      });
+      const position = last ? last.position + 1 : 0;
+
+      const updated = await prisma.card.update({
+        where: { id: card.id },
+        data: {
+          listId: parsedTargetListId,
+          position,
+        },
+      });
+
+      return res.json({ card: updated });
+    } catch (err) {
+      console.error('Move card to list error ====>', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
 boardRoutes.delete(
   '/:boardId/lists/:listId/cards/:cardId',
   async (req: AuthRequest, res) => {
@@ -549,6 +637,58 @@ boardRoutes.get('/:id/full', async (req: AuthRequest, res) => {
     return res.json({ board: boardData, lists });
   } catch (err) {
     console.error('Get board full error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.get('/:id/move-targets', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.id);
+
+    const currentBoard = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+      select: { id: true },
+    });
+    if (!currentBoard) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const boards = await prisma.board.findMany({
+      where: { ownerId: userId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        lists: {
+          orderBy: { position: 'asc' },
+          select: { id: true, title: true },
+        },
+      },
+    });
+
+    const currentIndex = boards.findIndex((board) => board.id === boardId);
+    if (currentIndex === -1) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const orderedBoards =
+      currentIndex <= 0
+        ? boards
+        : [boards[currentIndex], ...boards.slice(0, currentIndex), ...boards.slice(currentIndex + 1)];
+
+    const targets = orderedBoards.flatMap((board) =>
+      board.lists.map((list) => ({
+        boardId: board.id,
+        boardTitle: board.title,
+        listId: list.id,
+        listTitle: list.title,
+      }))
+    );
+
+    return res.json({ currentBoardId: boardId, targets });
+  } catch (err) {
+    console.error('Get move targets error ====>', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
