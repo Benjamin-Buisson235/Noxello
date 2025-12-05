@@ -1,7 +1,257 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
+
+const toCardDndId = (cardId: number) => `card-${cardId}`;
+const toListDndId = (listId: number) => `list-${listId}`;
+const parseCardId = (dndId: string | number) => {
+  const value = String(dndId);
+  if (!value.startsWith('card-')) return null;
+  const parsed = Number(value.replace('card-', ''));
+  return Number.isNaN(parsed) ? null : parsed;
+};
+const parseListId = (dndId: string | number) => {
+  const value = String(dndId);
+  if (!value.startsWith('list-')) return null;
+  const parsed = Number(value.replace('list-', ''));
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+function CardsDropzone({
+  listId,
+  activeListId,
+  children,
+}: {
+  listId: number;
+  activeListId: number | null;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id: toListDndId(listId) });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        marginTop: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        minHeight: 24,
+        outline: 'none',
+        borderRadius: 8,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SortableCard({
+  card,
+  list,
+  lists,
+  cardIndex,
+  cardsLength,
+  handleMoveCardToList,
+  handleReorderCard,
+  handleMoveCard,
+  handleDeleteCard,
+\}: {
+  card: any;
+  list: any;
+  lists: any[];
+  cardIndex: number;
+  cardsLength: number;
+  handleMoveCardToList: (
+    fromListId: number,
+    card: any,
+    targetListId: number
+  ) => void;
+  handleReorderCard: (listId: number, cardId: number, direction: 'up' | 'down') => void;
+  handleMoveCard: (fromListId: number, card: any, direction: 'left' | 'right') => void;
+  handleDeleteCard: (listId: number, card: any) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: toCardDndId(card.id) });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        borderRadius: 8,
+        padding: '6px 8px',
+        backgroundColor: 'rgba(11, 15, 35, 0.9)',
+        border: '1px solid rgba(157,78,221,0.55)',
+        fontSize: 12,
+        color: '#f9f5ff',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span
+            {...attributes}
+            {...listeners}
+            title="Drag card"
+            style={{
+              cursor: 'grab',
+              padding: '2px 4px',
+              borderRadius: 4,
+              border: '1px solid rgba(157,78,221,0.4)',
+              fontSize: 11,
+              lineHeight: 1,
+              color: 'rgba(226,232,240,0.9)',
+              userSelect: 'none',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            ⠿
+          </span>
+          <span>{card.title}</span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <select
+            value={list.id}
+            onChange={(e) =>
+              handleMoveCardToList(
+                list.id,
+                card,
+                Number(e.target.value)
+              )
+            }
+            style={{
+              borderRadius: 6,
+              padding: '2px 6px',
+              fontSize: 10,
+              border: '1px solid rgba(157,78,221,0.55)',
+              backgroundColor: 'rgba(11, 15, 35, 0.9)',
+              color: '#f9f5ff',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {lists.map((l: any) => (
+              <option key={l.id} value={l.id}>
+                {l.title}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="button button-ghost"
+            style={{
+              padding: '2px 6px',
+              fontSize: 10,
+              lineHeight: 1,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleReorderCard(list.id, card.id, 'up');
+            }}
+            disabled={cardIndex === 0}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            className="button button-ghost"
+            style={{
+              padding: '2px 6px',
+              fontSize: 10,
+              lineHeight: 1,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleReorderCard(list.id, card.id, 'down');
+            }}
+            disabled={cardIndex === cardsLength - 1}
+          >
+            ↓
+          </button>
+          <button
+            type="button"
+            className="button button-ghost"
+            style={{
+              padding: '2px 6px',
+              fontSize: 10,
+              lineHeight: 1,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleMoveCard(list.id, card, 'left');
+            }}
+          >
+            ◄
+          </button>
+          <button
+            type="button"
+            className="button button-ghost"
+            style={{
+              padding: '2px 6px',
+              fontSize: 10,
+              lineHeight: 1,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleMoveCard(list.id, card, 'right');
+            }}
+          >
+            ►
+          </button>
+          <button
+            type="button"
+            className="button button-ghost"
+            style={{
+              padding: '2px 6px',
+              fontSize: 10,
+              lineHeight: 1,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleDeleteCard(list.id, card);
+            }}
+          >
+            🗑
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BoardDetailPage() {
   const navigate = useNavigate();
@@ -22,7 +272,8 @@ function BoardDetailPage() {
   const [cardToDelete, setCardToDelete] = useState<
     null | { id: number; title: string; listId: number }
   >(null);
-
+  const [activeDragCardId, setActiveDragCardId] = useState<number | null>(null);
+  const [activeDragListId, setActiveDragListId] = useState<number | null>(null);
   const overlayStyle: React.CSSProperties = {
     position: 'fixed',
     inset: 0,
@@ -50,6 +301,17 @@ function BoardDetailPage() {
     justifyContent: 'flex-end',
     gap: 10,
   };
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+
+  const findListByCardId = (cardId: number) =>
+    lists.find((list: any) =>
+      (list.cards || []).some((card: any) => card.id === cardId)
+    );
+
+  const updateCardPositions = (cards: any[]) =>
+    cards.map((card: any, index: number) => ({ ...card, position: index }));
 
   const fetchBoardFull = async () => {
     if (!user || !id) return;
@@ -301,30 +563,18 @@ function BoardDetailPage() {
     }
   };
 
-  const handleMoveCardToList = async (fromListId: number, card: any, targetListId: number) => {
+  const handleMoveCardToList = async (
+    fromListId: number,
+    card: any,
+    targetListId: number
+  ) => {
     if (fromListId === targetListId) return;
-
-    setLists((prev) => {
-      const sourceList = prev.find((l: any) => l.id === fromListId);
-      const targetList = prev.find((l: any) => l.id === targetListId);
-      if (!sourceList || !targetList) return prev;
-
-      const sourceCards = (sourceList.cards || []).filter(
-        (c: any) => c.id !== card.id
-      );
-      const targetCards = [...(targetList.cards || []), { ...card, listId: targetListId }];
-
-      return prev.map((l: any) => {
-        if (l.id === fromListId) return { ...l, cards: sourceCards };
-        if (l.id === targetListId) return { ...l, cards: targetCards };
-        return l;
-      });
-    });
 
     try {
       await api.put(`/boards/${id}/lists/${fromListId}/cards/${card.id}/move`, {
         targetListId,
       });
+      fetchBoardFull();
     } catch (err) {
       console.error('Move card to list error ====>', err);
       fetchBoardFull();
@@ -372,6 +622,173 @@ function BoardDetailPage() {
       console.error('Reorder cards error ====>', err);
       fetchBoardFull();
     }
+  };
+
+  const handleDragStart = (event: any) => {
+    const activeCardId = parseCardId(event.active.id);
+    if (activeCardId === null) return;
+    setActiveDragCardId(activeCardId);
+    const sourceList = findListByCardId(activeCardId);
+    setActiveDragListId(sourceList ? sourceList.id : null);
+  };
+
+  const handleDragEnd = async (event: any) => {
+    try {
+      const { active, over } = event;
+      if (!over) {
+        fetchBoardFull();
+        return;
+      }
+
+      const activeCardId = parseCardId(active.id);
+      if (activeCardId === null) return;
+
+      const overCardId = parseCardId(over.id);
+      const overListId = parseListId(over.id);
+
+      const sourceList = findListByCardId(activeCardId);
+      if (!sourceList) return;
+
+      const destinationList = overCardId !== null
+        ? findListByCardId(overCardId)
+        : lists.find((list: any) => list.id === overListId);
+      if (!destinationList) return;
+
+      const sourceCards = sourceList.cards || [];
+      const destinationCards = destinationList.cards || [];
+      const sourceIndex = sourceCards.findIndex((c: any) => c.id === activeCardId);
+      if (sourceIndex === -1) return;
+
+      if (sourceList.id === destinationList.id) {
+        let destinationIndex = overCardId !== null
+          ? destinationCards.findIndex((c: any) => c.id === overCardId)
+          : destinationCards.length - 1;
+        if (destinationIndex < 0) destinationIndex = 0;
+        if (sourceIndex === destinationIndex) return;
+
+        const reordered = arrayMove(sourceCards, sourceIndex, destinationIndex);
+        setLists((prev) =>
+          prev.map((list: any) =>
+            list.id === sourceList.id
+              ? { ...list, cards: updateCardPositions(reordered) }
+              : list
+          )
+        );
+
+        try {
+          await api.patch(`/boards/${id}/lists/${sourceList.id}/cards/reorder`, {
+            orderedCardIds: reordered.map((c: any) => c.id),
+          });
+        } catch (err) {
+          console.error('Drag reorder cards error ====>', err);
+          fetchBoardFull();
+        }
+        return;
+      }
+
+      let destinationIndex = overCardId !== null
+        ? destinationCards.findIndex((c: any) => c.id === overCardId)
+        : destinationCards.length;
+      if (destinationIndex < 0) destinationIndex = destinationCards.length;
+
+      const movedCard = sourceCards[sourceIndex];
+      const nextSourceCards = sourceCards.filter((c: any) => c.id !== activeCardId);
+      const nextDestinationCards = [...destinationCards];
+      nextDestinationCards.splice(destinationIndex, 0, {
+        ...movedCard,
+        listId: destinationList.id,
+      });
+
+      setLists((prev) =>
+        prev.map((list: any) => {
+          if (list.id === sourceList.id) {
+            return { ...list, cards: updateCardPositions(nextSourceCards) };
+          }
+          if (list.id === destinationList.id) {
+            return { ...list, cards: updateCardPositions(nextDestinationCards) };
+          }
+          return list;
+        })
+      );
+
+      try {
+        await api.put(
+          `/boards/${id}/lists/${sourceList.id}/cards/${activeCardId}/move`,
+          { targetListId: destinationList.id }
+        );
+        await Promise.all([
+          api.patch(`/boards/${id}/lists/${sourceList.id}/cards/reorder`, {
+            orderedCardIds: nextSourceCards.map((c: any) => c.id),
+          }),
+          api.patch(`/boards/${id}/lists/${destinationList.id}/cards/reorder`, {
+            orderedCardIds: nextDestinationCards.map((c: any) => c.id),
+          }),
+        ]);
+      } catch (err) {
+        console.error('Drag move cards error ====>', err);
+        fetchBoardFull();
+      }
+    } finally {
+      setActiveDragCardId(null);
+      setActiveDragListId(null);
+    }
+  };
+
+  const handleDragOver = (event: any) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeCardId = parseCardId(active.id);
+    if (activeCardId === null) return;
+
+    const overCardId = parseCardId(over.id);
+    const overListId = parseListId(over.id);
+
+    const sourceList = findListByCardId(activeCardId);
+    if (!sourceList) return;
+
+    const destinationList = overCardId !== null
+      ? findListByCardId(overCardId)
+      : lists.find((list: any) => list.id === overListId);
+    if (!destinationList) return;
+
+    if (sourceList.id === destinationList.id) return;
+
+    const sourceCards = sourceList.cards || [];
+    const destinationCards = destinationList.cards || [];
+    const sourceIndex = sourceCards.findIndex((c: any) => c.id === activeCardId);
+    if (sourceIndex === -1) return;
+
+    let destinationIndex = overCardId !== null
+      ? destinationCards.findIndex((c: any) => c.id === overCardId)
+      : destinationCards.length;
+    if (destinationIndex < 0) destinationIndex = destinationCards.length;
+
+    const movedCard = sourceCards[sourceIndex];
+    const nextSourceCards = sourceCards.filter((c: any) => c.id !== activeCardId);
+    const nextDestinationCards = [...destinationCards];
+    nextDestinationCards.splice(destinationIndex, 0, {
+      ...movedCard,
+      listId: destinationList.id,
+    });
+
+    setLists((prev) =>
+      prev.map((list: any) => {
+        if (list.id === sourceList.id) {
+          return { ...list, cards: updateCardPositions(nextSourceCards) };
+        }
+        if (list.id === destinationList.id) {
+          return { ...list, cards: updateCardPositions(nextDestinationCards) };
+        }
+        return list;
+      })
+    );
+  };
+
+  const handleDragCancel = () => {
+    setActiveDragCardId(null);
+    setActiveDragListId(null);
+    fetchBoardFull();
   };
 
   const handleDeleteCard = (listId: number, card: any) => {
@@ -486,44 +903,51 @@ function BoardDetailPage() {
       </section>
 
       {/* Lists as Trello-style columns */}
-      <section className="card">
-        <h2 style={{ marginTop: 0, fontSize: 18 }}>Board columns</h2>
-        {lists.length === 0 ? (
-          <p className="text-muted" style={{ marginTop: 4 }}>
-            No columns yet. Create one above to start organizing your board.
-          </p>
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              gap: 12,
-              overflowX: 'auto',
-              paddingBottom: 4,
-              marginTop: 8,
-            }}
-          >
-            {lists.map((list: any, listIndex: number) => {
-              const cards = list.cards || [];
-              const cardTitle = newCardTitleByList[list.id] || '';
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <section className="card">
+          <h2 style={{ marginTop: 0, fontSize: 18 }}>Board columns</h2>
+          {lists.length === 0 ? (
+            <p className="text-muted" style={{ marginTop: 4 }}>
+              No columns yet. Create one above to start organizing your board.
+            </p>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                gap: 12,
+                overflowX: 'auto',
+                paddingBottom: 4,
+                marginTop: 8,
+              }}
+            >
+              {lists.map((list: any, listIndex: number) => {
+                const cards = list.cards || [];
+                const cardTitle = newCardTitleByList[list.id] || '';
 
-              return (
-                <div
-                  key={list.id}
-                  style={{
-                    minWidth: 220,
-                    maxWidth: 260,
-                    borderRadius: 12,
-                    padding: 10,
-                    background:
-                      'linear-gradient(145deg, rgba(55,10,98,0.96), rgba(92,28,168,0.96))',
-                    border: '1px solid rgba(199,125,255,0.75)',
-                  }}
-                >
+                return (
+                  <div
+                    key={list.id}
+                    style={{
+                      minWidth: 220,
+                      maxWidth: 260,
+                      borderRadius: 12,
+                      padding: 10,
+                      background:
+                        'linear-gradient(145deg, rgba(55,10,98,0.96), rgba(92,28,168,0.96))',
+                      border: '1px solid rgba(199,125,255,0.75)',
+                    }}
+                  >
                   <div
                     style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
+                      flexDirection: 'column',
                       gap: 6,
                       marginBottom: 4,
                     }}
@@ -531,7 +955,6 @@ function BoardDetailPage() {
                     <h3
                       style={{
                         margin: 0,
-                        marginBottom: 2,
                         fontSize: 15,
                         color: '#fdfcff',
                         wordBreak: 'break-word',
@@ -540,8 +963,8 @@ function BoardDetailPage() {
                     >
                       {list.title}
                     </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 3 }}>
                         <button
                           className="button button-ghost"
                           style={{
@@ -621,211 +1044,164 @@ function BoardDetailPage() {
                   </p>
 
                   {/* cards */}
-                  <div
-                    style={{
-                      marginTop: 10,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                    }}
+                  <SortableContext
+                    items={cards.map((card: any) => toCardDndId(card.id))}
+                    strategy={verticalListSortingStrategy}
                   >
-                    {cards.map((card: any, cardIndex: number) => (
-                      <div
-                        key={card.id}
-                        style={{
-                          borderRadius: 8,
-                          padding: '6px 8px',
-                          backgroundColor: 'rgba(11, 15, 35, 0.9)',
-                          border: '1px solid rgba(157,78,221,0.55)',
-                          fontSize: 12,
-                          color: '#f9f5ff',
-                          wordBreak: 'break-word',
-                          overflowWrap: 'break-word',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: 6,
-                          }}
-                        >
-                          <span>{card.title}</span>
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            <select
-                              value={list.id}
-                              onChange={(e) =>
-                                handleMoveCardToList(
-                                  list.id,
-                                  card,
-                                  Number(e.target.value)
-                                )
-                              }
-                              style={{
-                                borderRadius: 6,
-                                padding: '2px 6px',
-                                fontSize: 10,
-                                border: '1px solid rgba(157,78,221,0.55)',
-                                backgroundColor: 'rgba(11, 15, 35, 0.9)',
-                                color: '#f9f5ff',
-                              }}
-                            >
-                              {lists.map((l: any) => (
-                                <option key={l.id} value={l.id}>
-                                  {l.title}
-                                </option>
-                              ))}
-                            </select>
+                    <CardsDropzone
+                      listId={list.id}
+                      activeListId={activeDragListId}
+                    >
+                      {cards.map((card: any, cardIndex: number) => (
+                        <SortableCard
+                          key={card.id}
+                          card={card}
+                          list={list}
+                          lists={lists}
+                          cardIndex={cardIndex}
+                          cardsLength={cards.length}
+                          handleMoveCardToList={handleMoveCardToList}
+                          handleReorderCard={handleReorderCard}
+                          handleMoveCard={handleMoveCard}
+                          handleDeleteCard={handleDeleteCard}
+                        />
+                      ))}
+
+                      {activeCardListId === list.id ? (
+                        <form onSubmit={(e) => handleAddCard(e, list.id)}>
+                          <input
+                            type="text"
+                            value={cardTitle}
+                            onChange={(e) =>
+                              handleChangeCardTitle(list.id, e.target.value)
+                            }
+                            autoFocus
+                            placeholder="Card title"
+                            style={{
+                              width: '100%',
+                              borderRadius: 8,
+                              padding: 6,
+                              border: '1px solid rgba(199,125,255,0.7)',
+                              backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                              color: '#f9f5ff',
+                              fontSize: 12,
+                              marginBottom: 6,
+                            }}
+                          />
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: 6,
+                              alignItems: 'center',
+                            }}
+                          >
                             <button
-                              type="button"
-                              className="button button-ghost"
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: 10,
-                                lineHeight: 1,
-                              }}
-                              onClick={() =>
-                                handleReorderCard(list.id, card.id, 'up')
-                              }
-                              disabled={cardIndex === 0}
+                              type="submit"
+                              className="button button-primary"
+                              style={{ padding: '4px 10px', fontSize: 12 }}
                             >
-                              ↑
+                              Add card
                             </button>
                             <button
                               type="button"
                               className="button button-ghost"
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: 10,
-                                lineHeight: 1,
-                              }}
-                              onClick={() =>
-                                handleReorderCard(list.id, card.id, 'down')
-                              }
-                              disabled={cardIndex === cards.length - 1}
+                              style={{ padding: '4px 8px', fontSize: 12 }}
+                              onClick={() => handleCancelAddCard(list.id)}
                             >
-                              ↓
-                            </button>
-                            <button
-                              type="button"
-                              className="button button-ghost"
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: 10,
-                                lineHeight: 1,
-                              }}
-                              onClick={() =>
-                                handleMoveCard(list.id, card, 'left')
-                              }
-                            >
-                              ◄
-                            </button>
-                            <button
-                              type="button"
-                              className="button button-ghost"
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: 10,
-                                lineHeight: 1,
-                              }}
-                              onClick={() =>
-                                handleMoveCard(list.id, card, 'right')
-                              }
-                            >
-                              ►
-                            </button>
-                            <button
-                              type="button"
-                              className="button button-ghost"
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: 10,
-                                lineHeight: 1,
-                              }}
-                              onClick={() =>
-                                handleDeleteCard(list.id, card)
-                              }
-                            >
-                              🗑
+                              Cancel
                             </button>
                           </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {activeCardListId === list.id ? (
-                      <form onSubmit={(e) => handleAddCard(e, list.id)}>
-                        <input
-                          type="text"
-                          value={cardTitle}
-                          onChange={(e) =>
-                            handleChangeCardTitle(list.id, e.target.value)
-                          }
-                          autoFocus
-                          placeholder="Card title"
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddCard(list.id)}
                           style={{
-                            width: '100%',
+                            marginTop: 2,
                             borderRadius: 8,
-                            padding: 6,
-                            border: '1px solid rgba(199,125,255,0.7)',
-                            backgroundColor: 'rgba(6, 5, 24, 0.95)',
-                            color: '#f9f5ff',
+                            padding: '6px 8px',
+                            width: '100%',
+                            textAlign: 'left',
                             fontSize: 12,
-                            marginBottom: 6,
-                          }}
-                        />
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: 6,
-                            alignItems: 'center',
+                            border: '1px dashed rgba(199,125,255,0.6)',
+                            backgroundColor: 'transparent',
+                            color: 'rgba(240, 237, 255, 0.9)',
+                            cursor: 'pointer',
                           }}
                         >
-                          <button
-                            type="submit"
-                            className="button button-primary"
-                            style={{ padding: '4px 10px', fontSize: 12 }}
-                          >
-                            Add card
-                          </button>
-                          <button
-                            type="button"
-                            className="button button-ghost"
-                            style={{ padding: '4px 8px', fontSize: 12 }}
-                            onClick={() => handleCancelAddCard(list.id)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenAddCard(list.id)}
-                        style={{
-                          marginTop: 2,
-                          borderRadius: 8,
-                          padding: '6px 8px',
-                          width: '100%',
-                          textAlign: 'left',
-                          fontSize: 12,
-                          border: '1px dashed rgba(199,125,255,0.6)',
-                          backgroundColor: 'transparent',
-                          color: 'rgba(240, 237, 255, 0.9)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        + Add a card
-                      </button>
-                    )}
-                  </div>
+                          + Add a card
+                        </button>
+                      )}
+                    </CardsDropzone>
+                  </SortableContext>
                 </div>
               );
             })}
           </div>
         )}
       </section>
+
+      </DndContext>
+
+      {/* card details modal */}
+      {cardToEdit && (
+        <div style={overlayStyle}>
+          <div style={dialogStyle}>
+            <h3 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>
+              Card details
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'rgba(226,232,240,0.9)' }}>
+                  Title
+                </label>
+                <input
+                  className="input"
+                  type="text"
+                  value={editCardTitle}
+                  onChange={(e) => setEditCardTitle(e.target.value)}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'rgba(226,232,240,0.9)' }}>
+                  Description
+                </label>
+                <textarea
+                  value={editCardDescription}
+                  onChange={(e) => setEditCardDescription(e.target.value)}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    borderRadius: 8,
+                    padding: 8,
+                    border: '1px solid rgba(199,125,255,0.7)',
+                    backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                    color: '#f9f5ff',
+                    fontSize: 12,
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+            </div>
+            <div style={dialogButtonsStyle}>
+              <button
+                className="button button-ghost"
+                type="button"
+                onClick={handleCancelCardDetails}
+              >
+                Cancel
+              </button>
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={handleSaveCardDetails}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* custom delete modal for lists */}
       {listToDelete && (
