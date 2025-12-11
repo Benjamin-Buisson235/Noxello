@@ -400,6 +400,66 @@ boardRoutes.patch(
   }
 );
 
+boardRoutes.patch(
+  '/:boardId/lists/:listId/cards/:cardId',
+  async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = Number(req.params.boardId);
+      const listId = Number(req.params.listId);
+      const cardId = Number(req.params.cardId);
+      const { title, description } = req.body;
+
+      if (title === undefined && description === undefined) {
+        return res
+          .status(400)
+          .json({ message: 'title or description is required' });
+      }
+
+      let trimmedTitle: string | undefined;
+      if (title !== undefined) {
+        trimmedTitle = String(title).trim();
+        if (!trimmedTitle) {
+          return res.status(400).json({ message: 'Title is required' });
+        }
+      }
+
+      const board = await prisma.board.findFirst({
+        where: { id: boardId, ownerId: userId },
+      });
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      const card = await prisma.card.findFirst({
+        where: {
+          id: cardId,
+          list: {
+            id: listId,
+            boardId,
+          },
+        },
+      });
+      if (!card) {
+        return res.status(404).json({ message: 'Card not found' });
+      }
+
+      const updated = await prisma.card.update({
+        where: { id: card.id },
+        data: {
+          ...(trimmedTitle !== undefined ? { title: trimmedTitle } : {}),
+          ...(description !== undefined ? { description } : {}),
+        },
+      });
+
+      return res.json({ card: updated });
+    } catch (err) {
+      console.error('Update card error ====>', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
 boardRoutes.put(
   '/:boardId/lists/:listId/cards/:cardId/move',
   async (req: AuthRequest, res) => {
