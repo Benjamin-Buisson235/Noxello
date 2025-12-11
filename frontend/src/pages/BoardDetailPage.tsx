@@ -73,7 +73,8 @@ function SortableCard({
   handleReorderCard,
   handleMoveCard,
   handleDeleteCard,
-\}: {
+  onOpenCardDetails,
+}: {
   card: any;
   list: any;
   lists: any[];
@@ -90,6 +91,7 @@ function SortableCard({
   handleReorderCard: (listId: number, cardId: number, direction: 'up' | 'down') => void;
   handleMoveCard: (fromListId: number, card: any, direction: 'left' | 'right') => void;
   handleDeleteCard: (listId: number, card: any) => void;
+  onOpenCardDetails: (card: any, listId: number) => void;
 }) {
   const {
     attributes,
@@ -118,6 +120,7 @@ function SortableCard({
   return (
     <div
       ref={setNodeRef}
+      onClick={() => onOpenCardDetails(card, list.id)}
       style={{
         ...style,
         borderRadius: 8,
@@ -128,6 +131,7 @@ function SortableCard({
         color: '#f9f5ff',
         wordBreak: 'break-word',
         overflowWrap: 'break-word',
+        cursor: 'pointer',
       }}
     >
       <div
@@ -294,6 +298,12 @@ function BoardDetailPage() {
   >(null);
   const [activeDragCardId, setActiveDragCardId] = useState<number | null>(null);
   const [activeDragListId, setActiveDragListId] = useState<number | null>(null);
+  const [cardToEdit, setCardToEdit] = useState<
+    null | { id: number; title: string; description?: string | null; listId: number }
+  >(null);
+  const [editCardTitle, setEditCardTitle] = useState('');
+  const [editCardDescription, setEditCardDescription] = useState('');
+
   const overlayStyle: React.CSSProperties = {
     position: 'fixed',
     inset: 0,
@@ -868,6 +878,54 @@ function BoardDetailPage() {
     setCardToDelete(null);
   };
 
+  const handleOpenCardDetails = (card: any, listId: number) => {
+    setCardToEdit({
+      id: card.id,
+      title: card.title,
+      description: card.description ?? '',
+      listId,
+    });
+    setEditCardTitle(card.title || '');
+    setEditCardDescription(card.description ?? '');
+  };
+
+  const handleSaveCardDetails = async () => {
+    if (!cardToEdit) return;
+    const trimmedTitle = editCardTitle.trim();
+    if (!trimmedTitle) return;
+
+    try {
+      await api.patch(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}`,
+        {
+          title: trimmedTitle,
+          description: editCardDescription,
+        }
+      );
+      setCardToEdit(null);
+      fetchBoardFull();
+    } catch (err) {
+      console.error('Update card error ====>', err);
+      setCardToEdit(null);
+      fetchBoardFull();
+    }
+  };
+
+  const handleCancelCardDetails = () => {
+    setCardToEdit(null);
+  };
+
+  useEffect(() => {
+    if (!cardToEdit) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCardToEdit(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cardToEdit]);
+
   if (loadingUser || loadingBoard) {
     return <p style={{ padding: 24 }}>Loading…</p>;
   }
@@ -1106,6 +1164,7 @@ function BoardDetailPage() {
                           handleReorderCard={handleReorderCard}
                           handleMoveCard={handleMoveCard}
                           handleDeleteCard={handleDeleteCard}
+                          onOpenCardDetails={handleOpenCardDetails}
                         />
                       ))}
 
