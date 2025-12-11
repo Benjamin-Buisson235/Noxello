@@ -798,9 +798,10 @@ boardRoutes.delete('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ message: 'Board not found' });
     }
 
-    await prisma.board.delete({
-      where: { id: board.id },
-    });
+    await prisma.$transaction([
+      prisma.list.deleteMany({ where: { boardId: board.id } }),
+      prisma.board.delete({ where: { id: board.id } }),
+    ]);
 
     return res.status(204).send();
   } catch (err) {
