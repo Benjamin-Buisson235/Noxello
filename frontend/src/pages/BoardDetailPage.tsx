@@ -303,6 +303,10 @@ function BoardDetailPage() {
   >(null);
   const [editCardTitle, setEditCardTitle] = useState('');
   const [editCardDescription, setEditCardDescription] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveError, setSaveError] = useState('');
+  const saveStatusTimeout = React.useRef<number | null>(null);
 
   const overlayStyle: React.CSSProperties = {
     position: 'fixed',
@@ -887,14 +891,23 @@ function BoardDetailPage() {
     });
     setEditCardTitle(card.title || '');
     setEditCardDescription(card.description ?? '');
+    setIsDirty(false);
+    setSaveStatus('idle');
+    setSaveError('');
   };
 
   const handleSaveCardDetails = async () => {
     if (!cardToEdit) return;
     const trimmedTitle = editCardTitle.trim();
-    if (!trimmedTitle) return;
+    if (!trimmedTitle) {
+      setSaveStatus('error');
+      setSaveError('Title is required');
+      return;
+    }
 
     try {
+      setSaveStatus('saving');
+      setSaveError('');
       await api.patch(
         `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}`,
         {
@@ -902,24 +915,57 @@ function BoardDetailPage() {
           description: editCardDescription,
         }
       );
-      setCardToEdit(null);
+      setCardToEdit({
+        ...cardToEdit,
+        title: trimmedTitle,
+        description: editCardDescription,
+      });
+      setIsDirty(false);
+      setSaveStatus('saved');
       fetchBoardFull();
+      if (saveStatusTimeout.current) {
+        window.clearTimeout(saveStatusTimeout.current);
+      }
+      saveStatusTimeout.current = window.setTimeout(() => {
+        setSaveStatus('idle');
+      }, 1500);
     } catch (err) {
       console.error('Update card error ====>', err);
-      setCardToEdit(null);
-      fetchBoardFull();
+      setSaveStatus('error');
+      setSaveError('Unable to save card');
     }
   };
 
   const handleCancelCardDetails = () => {
+    if (isDirty) {
+      const confirmClose = window.confirm('Discard unsaved changes?');
+      if (!confirmClose) return;
+    }
     setCardToEdit(null);
   };
+
+  const handleModalOverlayClick = () => {
+    handleCancelCardDetails();
+  };
+
+  useEffect(() => {
+    if (!cardToEdit) return;
+    const initialTitle = cardToEdit.title ?? '';
+    const initialDescription = cardToEdit.description ?? '';
+    setIsDirty(
+      editCardTitle.trim() !== initialTitle ||
+        editCardDescription !== initialDescription
+    );
+  }, [cardToEdit, editCardTitle, editCardDescription]);
 
   useEffect(() => {
     if (!cardToEdit) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setCardToEdit(null);
+        handleCancelCardDetails();
+      }
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        handleSaveCardDetails();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -1246,8 +1292,8 @@ function BoardDetailPage() {
 
       {/* card details modal */}
       {cardToEdit && (
-        <div style={overlayStyle}>
-          <div style={dialogStyle}>
+        <div style={overlayStyle} onClick={handleModalOverlayClick}>
+          <div style={dialogStyle} onClick={(event) => event.stopPropagation()}>
             <h3 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>
               Card details
             </h3>
@@ -1284,6 +1330,28 @@ function BoardDetailPage() {
                 />
               </div>
             </div>
+            <div style={{ marginTop: 10, fontSize: 12 }}>
+              {isDirty && (
+                <span style={{ color: 'rgba(226,232,240,0.9)' }}>
+                  Unsaved changes
+                </span>
+              )}
+              {!isDirty && saveStatus === 'saved' && (
+                <span style={{ color: 'rgba(125, 247, 200, 0.95)' }}>
+                  Saved ✓
+                </span>
+              )}
+              {saveStatus === 'saving' && (
+                <span style={{ color: 'rgba(226,232,240,0.9)' }}>
+                  Saving…
+                </span>
+              )}
+              {saveStatus === 'error' && (
+                <span style={{ color: 'rgba(248, 113, 113, 0.95)' }}>
+                  {saveError || 'Unable to save'}
+                </span>
+              )}
+            </div>
             <div style={dialogButtonsStyle}>
               <button
                 className="button button-ghost"
@@ -1296,6 +1364,7 @@ function BoardDetailPage() {
                 className="button button-primary"
                 type="button"
                 onClick={handleSaveCardDetails}
+                disabled={saveStatus === 'saving'}
               >
                 Save
               </button>
