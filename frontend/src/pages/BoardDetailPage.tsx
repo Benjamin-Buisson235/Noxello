@@ -32,6 +32,16 @@ const parseListId = (dndId: string | number) => {
   const parsed = Number(value.replace('list-', ''));
   return Number.isNaN(parsed) ? null : parsed;
 };
+const toDateInputValue = (value?: string | null) => {
+  if (!value) return '';
+  return value.slice(0, 10);
+};
+const toLocalDateString = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function CardsDropzone({
   listId,
@@ -116,6 +126,9 @@ function SortableCard({
         listTitle: l.title,
       }));
   const selectedValue = `${list.boardId}:${list.id}`;
+  const dueDateLabel = toDateInputValue(card.dueDate);
+  const todayLabel = toLocalDateString(new Date());
+  const isOverdue = !!dueDateLabel && dueDateLabel < todayLabel;
 
   return (
     <div
@@ -271,6 +284,33 @@ function SortableCard({
             🗑
           </button>
         </div>
+        {dueDateLabel && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span
+              style={{
+                fontSize: 10,
+                padding: '2px 6px',
+                borderRadius: 999,
+                backgroundColor: isOverdue
+                  ? 'rgba(248, 113, 113, 0.2)'
+                  : 'rgba(125, 247, 200, 0.15)',
+                border: isOverdue
+                  ? '1px solid rgba(248, 113, 113, 0.6)'
+                  : '1px solid rgba(125, 247, 200, 0.4)',
+                color: isOverdue
+                  ? 'rgba(248, 113, 113, 0.95)'
+                  : 'rgba(125, 247, 200, 0.95)',
+              }}
+            >
+              Due: {dueDateLabel}
+            </span>
+            {isOverdue && (
+              <span style={{ fontSize: 10, color: 'rgba(248, 113, 113, 0.95)' }}>
+                Overdue
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -299,10 +339,17 @@ function BoardDetailPage() {
   const [activeDragCardId, setActiveDragCardId] = useState<number | null>(null);
   const [activeDragListId, setActiveDragListId] = useState<number | null>(null);
   const [cardToEdit, setCardToEdit] = useState<
-    null | { id: number; title: string; description?: string | null; listId: number }
+    null | {
+      id: number;
+      title: string;
+      description?: string | null;
+      dueDate?: string | null;
+      listId: number;
+    }
   >(null);
   const [editCardTitle, setEditCardTitle] = useState('');
   const [editCardDescription, setEditCardDescription] = useState('');
+  const [editCardDueDate, setEditCardDueDate] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
@@ -887,16 +934,18 @@ function BoardDetailPage() {
       id: card.id,
       title: card.title,
       description: card.description ?? '',
+      dueDate: card.dueDate ?? null,
       listId,
     });
     setEditCardTitle(card.title || '');
     setEditCardDescription(card.description ?? '');
+    setEditCardDueDate(toDateInputValue(card.dueDate));
     setIsDirty(false);
     setSaveStatus('idle');
     setSaveError('');
   };
 
-  const handleSaveCardDetails = async () => {
+  const handleSaveCardDetails = async (forcedDueDate?: string | null) => {
     if (!cardToEdit) return;
     const trimmedTitle = editCardTitle.trim();
     if (!trimmedTitle) {
@@ -904,6 +953,17 @@ function BoardDetailPage() {
       setSaveError('Title is required');
       return;
     }
+    const initialDueDate = toDateInputValue(cardToEdit.dueDate);
+    const dueDateChanged =
+      forcedDueDate !== undefined
+        ? true
+        : editCardDueDate !== initialDueDate;
+    const dueDateValue =
+      forcedDueDate !== undefined
+        ? forcedDueDate
+        : dueDateChanged
+          ? editCardDueDate || null
+          : undefined;
 
     try {
       setSaveStatus('saving');
@@ -913,13 +973,23 @@ function BoardDetailPage() {
         {
           title: trimmedTitle,
           description: editCardDescription,
+          ...(dueDateValue !== undefined ? { dueDate: dueDateValue } : {}),
         }
       );
       setCardToEdit({
         ...cardToEdit,
         title: trimmedTitle,
         description: editCardDescription,
+        dueDate:
+          dueDateValue === undefined
+            ? cardToEdit.dueDate ?? null
+            : dueDateValue
+              ? `${dueDateValue}T00:00:00.000Z`
+              : null,
       });
+      if (dueDateValue !== undefined) {
+        setEditCardDueDate(dueDateValue ? dueDateValue : '');
+      }
       setIsDirty(false);
       setSaveStatus('saved');
       fetchBoardFull();
@@ -944,6 +1014,11 @@ function BoardDetailPage() {
     setCardToEdit(null);
   };
 
+  const handleClearDueDate = async () => {
+    setEditCardDueDate('');
+    await handleSaveCardDetails(null);
+  };
+
   const handleModalOverlayClick = () => {
     handleCancelCardDetails();
   };
@@ -952,11 +1027,13 @@ function BoardDetailPage() {
     if (!cardToEdit) return;
     const initialTitle = cardToEdit.title ?? '';
     const initialDescription = cardToEdit.description ?? '';
+    const initialDueDate = toDateInputValue(cardToEdit.dueDate);
     setIsDirty(
       editCardTitle.trim() !== initialTitle ||
-        editCardDescription !== initialDescription
+        editCardDescription !== initialDescription ||
+        editCardDueDate !== initialDueDate
     );
-  }, [cardToEdit, editCardTitle, editCardDescription]);
+  }, [cardToEdit, editCardTitle, editCardDescription, editCardDueDate]);
 
   useEffect(() => {
     if (!cardToEdit) return;
@@ -1329,6 +1406,34 @@ function BoardDetailPage() {
                   }}
                 />
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'rgba(226,232,240,0.9)' }}>
+                  Due date
+                </label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="date"
+                    value={editCardDueDate}
+                    onChange={(e) => setEditCardDueDate(e.target.value)}
+                    style={{
+                      borderRadius: 8,
+                      padding: '6px 8px',
+                      border: '1px solid rgba(199,125,255,0.7)',
+                      backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                      color: '#f9f5ff',
+                      fontSize: 12,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={handleClearDueDate}
+                    disabled={!editCardDueDate}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
             </div>
             <div style={{ marginTop: 10, fontSize: 12 }}>
               {isDirty && (
@@ -1363,7 +1468,7 @@ function BoardDetailPage() {
               <button
                 className="button button-primary"
                 type="button"
-                onClick={handleSaveCardDetails}
+                onClick={() => handleSaveCardDetails()}
                 disabled={saveStatus === 'saving'}
               >
                 Save
