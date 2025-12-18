@@ -408,12 +408,12 @@ boardRoutes.patch(
       const boardId = Number(req.params.boardId);
       const listId = Number(req.params.listId);
       const cardId = Number(req.params.cardId);
-      const { title, description } = req.body;
+      const { title, description, dueDate } = req.body;
 
-      if (title === undefined && description === undefined) {
+      if (title === undefined && description === undefined && dueDate === undefined) {
         return res
           .status(400)
-          .json({ message: 'title or description is required' });
+          .json({ message: 'title, description, or dueDate is required' });
       }
 
       let trimmedTitle: string | undefined;
@@ -444,11 +444,27 @@ boardRoutes.patch(
         return res.status(404).json({ message: 'Card not found' });
       }
 
+      let parsedDueDate: Date | null | undefined;
+      if (dueDate !== undefined) {
+        if (dueDate === null) {
+          parsedDueDate = null;
+        } else if (typeof dueDate === 'string') {
+          const parsed = new Date(`${dueDate}T00:00:00.000Z`);
+          if (Number.isNaN(parsed.getTime())) {
+            return res.status(400).json({ message: 'Invalid dueDate' });
+          }
+          parsedDueDate = parsed;
+        } else {
+          return res.status(400).json({ message: 'Invalid dueDate' });
+        }
+      }
+
       const updated = await prisma.card.update({
         where: { id: card.id },
         data: {
           ...(trimmedTitle !== undefined ? { title: trimmedTitle } : {}),
           ...(description !== undefined ? { description } : {}),
+          ...(parsedDueDate !== undefined ? { dueDate: parsedDueDate } : {}),
         },
       });
 
