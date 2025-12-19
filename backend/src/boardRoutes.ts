@@ -108,6 +108,62 @@ boardRoutes.post('/:id/lists', async (req: AuthRequest, res) => {
   }
 });
 
+boardRoutes.get('/:boardId/labels', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.boardId);
+
+    const board = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+    });
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const labels = await prisma.label.findMany({
+      where: { boardId },
+      orderBy: { id: 'asc' },
+    });
+
+    return res.json({ labels });
+  } catch (err) {
+    console.error('Get labels error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.post('/:boardId/labels', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.boardId);
+    const { name, color } = req.body;
+
+    if (!name || String(name).trim() === '') {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    const board = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+    });
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const label = await prisma.label.create({
+      data: {
+        name: String(name).trim(),
+        color: color ? String(color) : null,
+        boardId,
+      },
+    });
+
+    return res.status(201).json({ label });
+  } catch (err) {
+    console.error('Create label error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 boardRoutes.patch('/:id/lists/reorder', async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!;
@@ -477,6 +533,84 @@ boardRoutes.patch(
 );
 
 boardRoutes.put(
+  '/:boardId/lists/:listId/cards/:cardId/labels',
+  async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = Number(req.params.boardId);
+      const listId = Number(req.params.listId);
+      const cardId = Number(req.params.cardId);
+      const { labelIds } = req.body;
+
+      if (!Array.isArray(labelIds)) {
+        return res.status(400).json({ message: 'labelIds must be an array' });
+      }
+
+      const parsedIds = labelIds.map((id: string | number) => Number(id));
+      if (parsedIds.some((id: number) => Number.isNaN(id))) {
+        return res.status(400).json({ message: 'labelIds must contain only numbers' });
+      }
+
+      const uniqueIds = Array.from(new Set(parsedIds));
+
+      const board = await prisma.board.findFirst({
+        where: { id: boardId, ownerId: userId },
+      });
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      const card = await prisma.card.findFirst({
+        where: {
+          id: cardId,
+          list: {
+            id: listId,
+            boardId,
+          },
+        },
+      });
+      if (!card) {
+        return res.status(404).json({ message: 'Card not found' });
+      }
+
+      if (uniqueIds.length > 0) {
+        const labels = await prisma.label.findMany({
+          where: { id: { in: uniqueIds }, boardId },
+          select: { id: true },
+        });
+        if (labels.length !== uniqueIds.length) {
+          return res.status(404).json({ message: 'Label not found' });
+        }
+      }
+
+      await prisma.$transaction([
+        prisma.cardLabel.deleteMany({ where: { cardId } }),
+        ...(uniqueIds.length
+          ? [
+              prisma.cardLabel.createMany({
+                data: uniqueIds.map((labelId: number) => ({
+                  cardId,
+                  labelId,
+                })),
+              }),
+            ]
+          : []),
+      ]);
+
+      const labels = await prisma.cardLabel.findMany({
+        where: { cardId },
+        include: { label: true },
+      });
+
+      return res.json({ labels: labels.map((entry) => entry.label) });
+    } catch (err) {
+      console.error('Update card labels error ====>', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+boardRoutes.put(
   '/:boardId/lists/:listId/cards/:cardId/move',
   async (req: AuthRequest, res) => {
     try {
@@ -699,6 +833,11 @@ boardRoutes.get('/:id/full', async (req: AuthRequest, res) => {
           include: {
             cards: {
               orderBy: { position: 'asc' },
+              include: {
+                cardLabels: {
+                  include: { label: true },
+                },
+              },
             },
           },
         },
