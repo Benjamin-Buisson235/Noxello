@@ -26,6 +26,7 @@ model Board {
   owner   User   @relation(fields: [ownerId], references: [id])
 
   lists   List[]
+  labels  Label[]
 }
 
 model List {
@@ -50,6 +51,28 @@ model Card {
   list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
   listId    Int
 
+  cardLabels CardLabel[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Label {
+  id      Int     @id @default(autoincrement())
+  name    String
+  color   String?
+  boardId Int
+
+  board      Board       @relation(fields: [boardId], references: [id])
+  cardLabels CardLabel[]
+}
+
+model CardLabel {
+  cardId  Int
+  labelId Int
+
+  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, labelId])
 }
