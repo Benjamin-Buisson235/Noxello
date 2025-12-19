@@ -42,6 +42,12 @@ const toLocalDateString = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+const sameLabelIds = (a: number[], b: number[]) => {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort((x, y) => x - y);
+  const sortedB = [...b].sort((x, y) => x - y);
+  return sortedA.every((value, index) => value === sortedB[index]);
+};
 
 function CardsDropzone({
   listId,
@@ -129,6 +135,9 @@ function SortableCard({
   const dueDateLabel = toDateInputValue(card.dueDate);
   const todayLabel = toLocalDateString(new Date());
   const isOverdue = !!dueDateLabel && dueDateLabel < todayLabel;
+  const cardLabels = (card.cardLabels || [])
+    .map((entry: any) => entry.label)
+    .filter(Boolean);
 
   return (
     <div
@@ -284,6 +293,28 @@ function SortableCard({
             🗑
           </button>
         </div>
+        {cardLabels.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {cardLabels.map((label: any) => {
+              const color = label.color || 'rgba(157,78,221,0.35)';
+              return (
+                <span
+                  key={label.id}
+                  style={{
+                    fontSize: 10,
+                    padding: '2px 6px',
+                    borderRadius: 999,
+                    backgroundColor: color,
+                    border: '1px solid rgba(157,78,221,0.45)',
+                    color: '#f9f5ff',
+                  }}
+                >
+                  {label.name}
+                </span>
+              );
+            })}
+          </div>
+        )}
         {dueDateLabel && (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span
@@ -323,6 +354,7 @@ function BoardDetailPage() {
   const [user, setUser] = useState(null);
   const [board, setBoard] = useState(null);
   const [lists, setLists] = useState([]);
+  const [boardLabels, setBoardLabels] = useState([]);
   const [moveTargets, setMoveTargets] = useState([]);
   const [newListTitle, setNewListTitle] = useState('');
   const [newCardTitleByList, setNewCardTitleByList] = useState<{ [key: number]: string }>({});
@@ -350,6 +382,10 @@ function BoardDetailPage() {
   const [editCardTitle, setEditCardTitle] = useState('');
   const [editCardDescription, setEditCardDescription] = useState('');
   const [editCardDueDate, setEditCardDueDate] = useState('');
+  const [selectedLabelIds, setSelectedLabelIds] = useState<number[]>([]);
+  const [initialLabelIds, setInitialLabelIds] = useState<number[]>([]);
+  const [newLabelName, setNewLabelName] = useState('');
+  const [newLabelColor, setNewLabelColor] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
@@ -426,6 +462,16 @@ function BoardDetailPage() {
     }
   };
 
+  const fetchBoardLabels = async () => {
+    if (!user || !id) return;
+    try {
+      const res = await api.get(`/boards/${id}/labels`);
+      setBoardLabels(res.data.labels || []);
+    } catch (err) {
+      console.error('Fetch labels error ====>', err);
+    }
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -450,6 +496,7 @@ function BoardDetailPage() {
   useEffect(() => {
     fetchBoardFull();
     fetchMoveTargets();
+    fetchBoardLabels();
   }, [user, id]);
 
   const handleBack = () => {
@@ -930,6 +977,9 @@ function BoardDetailPage() {
   };
 
   const handleOpenCardDetails = (card: any, listId: number) => {
+    const labelIds = (card.cardLabels || [])
+      .map((entry: any) => entry.labelId ?? entry.label?.id)
+      .filter((value: any) => Number.isFinite(value));
     setCardToEdit({
       id: card.id,
       title: card.title,
@@ -940,6 +990,8 @@ function BoardDetailPage() {
     setEditCardTitle(card.title || '');
     setEditCardDescription(card.description ?? '');
     setEditCardDueDate(toDateInputValue(card.dueDate));
+    setSelectedLabelIds(labelIds);
+    setInitialLabelIds(labelIds);
     setIsDirty(false);
     setSaveStatus('idle');
     setSaveError('');
@@ -964,6 +1016,7 @@ function BoardDetailPage() {
         : dueDateChanged
           ? editCardDueDate || null
           : undefined;
+    const labelsChanged = !sameLabelIds(selectedLabelIds, initialLabelIds);
 
     try {
       setSaveStatus('saving');
@@ -976,6 +1029,12 @@ function BoardDetailPage() {
           ...(dueDateValue !== undefined ? { dueDate: dueDateValue } : {}),
         }
       );
+      if (labelsChanged) {
+        await api.put(
+          `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/labels`,
+          { labelIds: selectedLabelIds }
+        );
+      }
       setCardToEdit({
         ...cardToEdit,
         title: trimmedTitle,
@@ -989,6 +1048,9 @@ function BoardDetailPage() {
       });
       if (dueDateValue !== undefined) {
         setEditCardDueDate(dueDateValue ? dueDateValue : '');
+      }
+      if (labelsChanged) {
+        setInitialLabelIds([...selectedLabelIds]);
       }
       setIsDirty(false);
       setSaveStatus('saved');
@@ -1019,6 +1081,33 @@ function BoardDetailPage() {
     await handleSaveCardDetails(null);
   };
 
+  const handleToggleLabel = (labelId: number) => {
+    setSelectedLabelIds((prev) =>
+      prev.includes(labelId)
+        ? prev.filter((id) => id !== labelId)
+        : [...prev, labelId]
+    );
+  };
+
+  const handleCreateLabel = async () => {
+    const name = newLabelName.trim();
+    if (!name) return;
+
+    try {
+      const res = await api.post(`/boards/${id}/labels`, {
+        name,
+        color: newLabelColor.trim() || undefined,
+      });
+      const label = res.data.label;
+      setBoardLabels((prev) => [...prev, label]);
+      setSelectedLabelIds((prev) => [...prev, label.id]);
+      setNewLabelName('');
+      setNewLabelColor('');
+    } catch (err) {
+      console.error('Create label error ====>', err);
+    }
+  };
+
   const handleModalOverlayClick = () => {
     handleCancelCardDetails();
   };
@@ -1031,9 +1120,17 @@ function BoardDetailPage() {
     setIsDirty(
       editCardTitle.trim() !== initialTitle ||
         editCardDescription !== initialDescription ||
-        editCardDueDate !== initialDueDate
+        editCardDueDate !== initialDueDate ||
+        !sameLabelIds(selectedLabelIds, initialLabelIds)
     );
-  }, [cardToEdit, editCardTitle, editCardDescription, editCardDueDate]);
+  }, [
+    cardToEdit,
+    editCardTitle,
+    editCardDescription,
+    editCardDueDate,
+    selectedLabelIds,
+    initialLabelIds,
+  ]);
 
   useEffect(() => {
     if (!cardToEdit) return;
@@ -1431,6 +1528,76 @@ function BoardDetailPage() {
                     disabled={!editCardDueDate}
                   >
                     Clear
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'rgba(226,232,240,0.9)' }}>
+                  Labels
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {boardLabels.length === 0 && (
+                    <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
+                      No labels yet.
+                    </span>
+                  )}
+                  {boardLabels.map((label: any) => (
+                    <label
+                      key={label.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 12,
+                        color: '#f9f5ff',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedLabelIds.includes(label.id)}
+                        onChange={() => handleToggleLabel(label.id)}
+                      />
+                      <span>{label.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="New label name"
+                    value={newLabelName}
+                    onChange={(e) => setNewLabelName(e.target.value)}
+                    style={{
+                      flex: 1,
+                      borderRadius: 8,
+                      padding: '6px 8px',
+                      border: '1px solid rgba(199,125,255,0.7)',
+                      backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                      color: '#f9f5ff',
+                      fontSize: 12,
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Color (optional)"
+                    value={newLabelColor}
+                    onChange={(e) => setNewLabelColor(e.target.value)}
+                    style={{
+                      width: 120,
+                      borderRadius: 8,
+                      padding: '6px 8px',
+                      border: '1px solid rgba(199,125,255,0.7)',
+                      backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                      color: '#f9f5ff',
+                      fontSize: 12,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={handleCreateLabel}
+                  >
+                    Add
                   </button>
                 </div>
               </div>
