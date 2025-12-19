@@ -184,37 +184,40 @@ function SortableCard({
           </span>
           <span>{card.title}</span>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          <select
-            value={selectedValue}
-            onChange={(e) => {
-              const [targetBoardId, targetListId] = e.target.value
-                .split(':')
-                .map((value) => Number(value));
-              if (Number.isNaN(targetBoardId) || Number.isNaN(targetListId)) {
-                return;
-              }
-              handleMoveCardToList(list.id, card, targetBoardId, targetListId);
-            }}
-            style={{
-              borderRadius: 6,
-              padding: '2px 6px',
-              fontSize: 10,
-              border: '1px solid rgba(157,78,221,0.55)',
-              backgroundColor: 'rgba(11, 15, 35, 0.9)',
-              color: '#f9f5ff',
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {targets.map((target: any) => (
-              <option
-                key={`${target.boardId}:${target.listId}`}
-                value={`${target.boardId}:${target.listId}`}
-              >
-                {target.boardTitle}: {target.listTitle}
-              </option>
-            ))}
-          </select>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div>
+            <select
+              value={selectedValue}
+              onChange={(e) => {
+                const [targetBoardId, targetListId] = e.target.value
+                  .split(':')
+                  .map((value) => Number(value));
+                if (Number.isNaN(targetBoardId) || Number.isNaN(targetListId)) {
+                  return;
+                }
+                handleMoveCardToList(list.id, card, targetBoardId, targetListId);
+              }}
+              style={{
+                borderRadius: 6,
+                padding: '2px 6px',
+                fontSize: 10,
+                border: '1px solid rgba(157,78,221,0.55)',
+                backgroundColor: 'rgba(11, 15, 35, 0.9)',
+                color: '#f9f5ff',
+              }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {targets.map((target: any) => (
+                <option
+                  key={`${target.boardId}:${target.listId}`}
+                  value={`${target.boardId}:${target.listId}`}
+                >
+                  {target.boardTitle}: {target.listTitle}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           <button
             type="button"
             className="button button-ghost"
@@ -292,6 +295,7 @@ function SortableCard({
           >
             🗑
           </button>
+          </div>
         </div>
         {cardLabels.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1006,16 +1010,16 @@ function BoardDetailPage() {
       return;
     }
     const initialDueDate = toDateInputValue(cardToEdit.dueDate);
-    const dueDateChanged =
-      forcedDueDate !== undefined
-        ? true
-        : editCardDueDate !== initialDueDate;
+    const dueDateChanged = forcedDueDate !== undefined
+      ? true
+      : editCardDueDate !== initialDueDate;
     const dueDateValue =
       forcedDueDate !== undefined
         ? forcedDueDate
         : dueDateChanged
           ? editCardDueDate || null
           : undefined;
+
     const labelsChanged = !sameLabelIds(selectedLabelIds, initialLabelIds);
 
     try {
@@ -1138,7 +1142,11 @@ function BoardDetailPage() {
       if (event.key === 'Escape') {
         handleCancelCardDetails();
       }
-      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === 'Enter'
+      ) {
+        event.preventDefault();
         handleSaveCardDetails();
       }
     };
