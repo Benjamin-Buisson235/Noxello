@@ -15,6 +15,7 @@ model User {
   createdAt    DateTime @default(now())
 
   boards       Board[]
+  comments     Comment[]
 }
 
 model Board {
@@ -53,6 +54,7 @@ model Card {
 
   cardLabels CardLabel[]
   checklistItems ChecklistItem[]
+  comments  Comment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,6 +69,17 @@ model ChecklistItem {
   createdAt DateTime @default(now())
 
   card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  cardId    Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+
+  card    Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  author  User @relation(fields: [authorId], references: [id])
 }
 
 model Label {
