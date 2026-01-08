@@ -390,6 +390,8 @@ function BoardDetailPage() {
   const [initialLabelIds, setInitialLabelIds] = useState<number[]>([]);
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState('');
+  const [checklistItems, setChecklistItems] = useState<any[]>([]);
+  const [newChecklistText, setNewChecklistText] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
@@ -475,6 +477,21 @@ function BoardDetailPage() {
       console.error('Fetch labels error ====>', err);
     }
   };
+
+  const fetchChecklistItems = async (cardId: number, listId: number) => {
+    if (!user || !id) return;
+    try {
+      const res = await api.get(
+        `/boards/${id}/lists/${listId}/cards/${cardId}/checklist`
+      );
+      setChecklistItems(res.data.items || []);
+    } catch (err) {
+      console.error('Fetch checklist error ====>', err);
+      setChecklistItems([]);
+    }
+  };
+
+
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -996,6 +1013,8 @@ function BoardDetailPage() {
     setEditCardDueDate(toDateInputValue(card.dueDate));
     setSelectedLabelIds(labelIds);
     setInitialLabelIds(labelIds);
+    setNewChecklistText('');
+    fetchChecklistItems(card.id, listId);
     setIsDirty(false);
     setSaveStatus('idle');
     setSaveError('');
@@ -1078,6 +1097,8 @@ function BoardDetailPage() {
       if (!confirmClose) return;
     }
     setCardToEdit(null);
+    setChecklistItems([]);
+    setNewChecklistText('');
   };
 
   const handleClearDueDate = async () => {
@@ -1111,6 +1132,113 @@ function BoardDetailPage() {
       console.error('Create label error ====>', err);
     }
   };
+
+  const handleAddChecklistItem = async () => {
+    if (!cardToEdit) return;
+    const text = newChecklistText.trim();
+    if (!text) return;
+
+    try {
+      const res = await api.post(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/checklist`,
+        { text }
+      );
+      const item = res.data.item;
+      setChecklistItems((prev) => [...prev, item]);
+      setNewChecklistText('');
+    } catch (err) {
+      console.error('Add checklist item error ====>', err);
+    }
+  };
+
+  const handleToggleChecklistItem = async (itemId: number, done: boolean) => {
+    if (!cardToEdit) return;
+    setChecklistItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, done } : item))
+    );
+    try {
+      const res = await api.patch(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/checklist/${itemId}`,
+        { done }
+      );
+      const updated = res.data.item;
+      setChecklistItems((prev) =>
+        prev.map((item) => (item.id === itemId ? updated : item))
+      );
+    } catch (err) {
+      console.error('Toggle checklist item error ====>', err);
+      fetchChecklistItems(cardToEdit.id, cardToEdit.listId);
+    }
+  };
+
+  const handleChecklistTextChange = (itemId: number, text: string) => {
+    setChecklistItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, text } : item))
+    );
+  };
+
+  const handleSaveChecklistText = async (itemId: number, text: string) => {
+    if (!cardToEdit) return;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      fetchChecklistItems(cardToEdit.id, cardToEdit.listId);
+      return;
+    }
+
+    try {
+      const res = await api.patch(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/checklist/${itemId}`,
+        { text: trimmed }
+      );
+      const updated = res.data.item;
+      setChecklistItems((prev) =>
+        prev.map((item) => (item.id === itemId ? updated : item))
+      );
+    } catch (err) {
+      console.error('Update checklist item error ====>', err);
+      fetchChecklistItems(cardToEdit.id, cardToEdit.listId);
+    }
+  };
+
+  const handleDeleteChecklistItem = async (itemId: number) => {
+    if (!cardToEdit) return;
+    setChecklistItems((prev) => prev.filter((item) => item.id !== itemId));
+    try {
+      await api.delete(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/checklist/${itemId}`
+      );
+    } catch (err) {
+      console.error('Delete checklist item error ====>', err);
+      fetchChecklistItems(cardToEdit.id, cardToEdit.listId);
+    }
+  };
+
+  const handleReorderChecklistItem = async (
+    itemId: number,
+    direction: 'up' | 'down'
+  ) => {
+    if (!cardToEdit) return;
+    const currentIndex = checklistItems.findIndex((item) => item.id === itemId);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= checklistItems.length) return;
+
+    const reordered = [...checklistItems];
+    const [moved] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+    setChecklistItems(reordered);
+
+    try {
+      await api.patch(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/checklist/reorder`,
+        { orderedItemIds: reordered.map((item) => item.id) }
+      );
+    } catch (err) {
+      console.error('Reorder checklist error ====>', err);
+      fetchChecklistItems(cardToEdit.id, cardToEdit.listId);
+    }
+  };
+
 
   const handleModalOverlayClick = () => {
     handleCancelCardDetails();
@@ -1153,6 +1281,9 @@ function BoardDetailPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cardToEdit]);
+
+  const checklistDoneCount = checklistItems.filter((item) => item.done).length;
+  const checklistTotalCount = checklistItems.length;
 
   if (loadingUser || loadingBoard) {
     return <p style={{ padding: 24 }}>Loading…</p>;
@@ -1610,6 +1741,113 @@ function BoardDetailPage() {
                 </div>
               </div>
             </div>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {checklistItems.length === 0 && (
+                    <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
+                      No checklist items yet.
+                    </span>
+                  )}
+                  {checklistItems.map((item: any, index: number) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!item.done}
+                        onChange={(event) =>
+                          handleToggleChecklistItem(item.id, event.target.checked)
+                        }
+                      />
+                      <input
+                        type="text"
+                        value={item.text}
+                        onChange={(event) =>
+                          handleChecklistTextChange(item.id, event.target.value)
+                        }
+                        onBlur={(event) =>
+                          handleSaveChecklistText(item.id, event.target.value)
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            handleSaveChecklistText(
+                              item.id,
+                              (event.target as HTMLInputElement).value
+                            );
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          borderRadius: 8,
+                          padding: '6px 8px',
+                          border: '1px solid rgba(199,125,255,0.7)',
+                          backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                          color: '#f9f5ff',
+                          fontSize: 12,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="button button-ghost"
+                        onClick={() => handleReorderChecklistItem(item.id, 'up')}
+                        disabled={index === 0}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-ghost"
+                        onClick={() => handleReorderChecklistItem(item.id, 'down')}
+                        disabled={index === checklistItems.length - 1}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-ghost"
+                        onClick={() => handleDeleteChecklistItem(item.id)}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="Add checklist item"
+                    value={newChecklistText}
+                    onChange={(event) => setNewChecklistText(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAddChecklistItem();
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      borderRadius: 8,
+                      padding: '6px 8px',
+                      border: '1px solid rgba(199,125,255,0.7)',
+                      backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                      color: '#f9f5ff',
+                      fontSize: 12,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={handleAddChecklistItem}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
             <div style={{ marginTop: 10, fontSize: 12 }}>
               {isDirty && (
                 <span style={{ color: 'rgba(226,232,240,0.9)' }}>
