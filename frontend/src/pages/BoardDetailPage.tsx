@@ -392,6 +392,8 @@ function BoardDetailPage() {
   const [newLabelColor, setNewLabelColor] = useState('');
   const [checklistItems, setChecklistItems] = useState<any[]>([]);
   const [newChecklistText, setNewChecklistText] = useState('');
+  const [comments, setComments] = useState<any[]>([]);
+  const [newCommentContent, setNewCommentContent] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
@@ -490,6 +492,21 @@ function BoardDetailPage() {
       setChecklistItems([]);
     }
   };
+
+  const fetchComments = async (cardId: number, listId: number) => {
+    if (!user || !id) return;
+    try {
+      const res = await api.get(
+        `/boards/${id}/lists/${listId}/cards/${cardId}/comments`
+      );
+      setComments(res.data.comments || []);
+    } catch (err) {
+      console.error('Fetch comments error ====>', err);
+      setComments([]);
+    }
+  };
+
+
 
 
 
@@ -1014,7 +1031,10 @@ function BoardDetailPage() {
     setSelectedLabelIds(labelIds);
     setInitialLabelIds(labelIds);
     setNewChecklistText('');
+    setComments([]);
+    setNewCommentContent('');
     fetchChecklistItems(card.id, listId);
+    fetchComments(card.id, listId);
     setIsDirty(false);
     setSaveStatus('idle');
     setSaveError('');
@@ -1238,6 +1258,38 @@ function BoardDetailPage() {
       fetchChecklistItems(cardToEdit.id, cardToEdit.listId);
     }
   };
+
+  const handleAddComment = async () => {
+    if (!cardToEdit) return;
+    const content = newCommentContent.trim();
+    if (!content) return;
+
+    try {
+      const res = await api.post(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/comments`,
+        { content }
+      );
+      const comment = res.data.comment;
+      setComments((prev) => [...prev, comment]);
+      setNewCommentContent('');
+    } catch (err) {
+      console.error('Add comment error ====>', err);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!cardToEdit) return;
+    setComments((prev) => prev.filter((comment) => comment.id !== commentId));
+    try {
+      await api.delete(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/comments/${commentId}`
+      );
+    } catch (err) {
+      console.error('Delete comment error ====>', err);
+      fetchComments(cardToEdit.id, cardToEdit.listId);
+    }
+  };
+
 
 
   const handleModalOverlayClick = () => {
@@ -1741,7 +1793,7 @@ function BoardDetailPage() {
                 </div>
               </div>
             </div>
-<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {checklistItems.length === 0 && (
                     <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
                       No checklist items yet.
@@ -1848,6 +1900,100 @@ function BoardDetailPage() {
                   </button>
                 </div>
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, color: 'rgba(226,232,240,0.9)' }}>
+                  Comments
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {comments.length === 0 && (
+                    <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
+                      No comments yet.
+                    </span>
+                  )}
+                  {comments.map((comment: any) => {
+                    const authorName =
+                      comment.author?.name || comment.author?.email || 'Unknown';
+                    const isOwnComment = comment.author?.id === user?.id;
+                    return (
+                      <div
+                        key={comment.id}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 4,
+                          padding: 8,
+                          borderRadius: 8,
+                          backgroundColor: 'rgba(11, 15, 35, 0.6)',
+                          border: '1px solid rgba(157,78,221,0.35)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontSize: 11,
+                            color: 'rgba(226,232,240,0.8)',
+                          }}
+                        >
+                          <span>{authorName}</span>
+                          <span>
+                            {new Date(comment.createdAt).toLocaleString('en-US', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#f9f5ff' }}>
+                          {comment.content}
+                        </div>
+                        {isOwnComment && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              className="button button-ghost"
+                              onClick={() => handleDeleteComment(comment.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <textarea
+                  value={newCommentContent}
+                  onChange={(event) => setNewCommentContent(event.target.value)}
+                  rows={3}
+                  placeholder="Write a comment"
+                  style={{
+                    width: '100%',
+                    borderRadius: 8,
+                    padding: 8,
+                    border: '1px solid rgba(199,125,255,0.7)',
+                    backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                    color: '#f9f5ff',
+                    fontSize: 12,
+                    resize: 'vertical',
+                  }}
+                  onKeyDown={(event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                      event.preventDefault();
+                      handleAddComment();
+                    }
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={handleAddComment}
+                  >
+                    Add comment
+                  </button>
+                </div>
+              </div>
+            </div>
             <div style={{ marginTop: 10, fontSize: 12 }}>
               {isDirty && (
                 <span style={{ color: 'rgba(226,232,240,0.9)' }}>
