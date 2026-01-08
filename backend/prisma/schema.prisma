@@ -52,9 +52,21 @@ model Card {
   listId    Int
 
   cardLabels CardLabel[]
+  checklistItems ChecklistItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ChecklistItem {
+  id        Int      @id @default(autoincrement())
+  cardId    Int
+  text      String
+  done      Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
 model Label {
