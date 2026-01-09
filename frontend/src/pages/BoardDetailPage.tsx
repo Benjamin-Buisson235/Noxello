@@ -361,6 +361,7 @@ function BoardDetailPage() {
   const [boardLabels, setBoardLabels] = useState([]);
   const [moveTargets, setMoveTargets] = useState([]);
   const [newListTitle, setNewListTitle] = useState('');
+  const [isAddingList, setIsAddingList] = useState(false);
   const [newCardTitleByList, setNewCardTitleByList] = useState<{ [key: number]: string }>({});
   const [activeCardListId, setActiveCardListId] = useState<number | null>(null);
 
@@ -577,6 +578,7 @@ function BoardDetailPage() {
       const list = res.data.list;
       setLists((prev) => [...prev, { ...list, cards: [] }]);
       setNewListTitle('');
+      setIsAddingList(false);
     } catch (err) {
       console.error('Create list error ====>', err);
     }
@@ -1638,7 +1640,263 @@ function BoardDetailPage() {
               const cardTitle = newCardTitleByList[list.id] || '';
 
               return (
+                <div
+                  key={list.id}
+                  style={{
+                    minWidth: 220,
+                    maxWidth: 260,
+                    borderRadius: 12,
+                    padding: 10,
+                    background:
+                      'linear-gradient(145deg, rgba(55,10,98,0.96), rgba(92,28,168,0.96))',
+                    border: '1px solid rgba(199,125,255,0.75)',
+                  }}
+                >
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    marginBottom: 4,
+                  }}
+                >
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 15,
+                      color: '#fdfcff',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                    }}
+                  >
+                    {list.title}
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      <button
+                        className="button button-ghost"
+                        style={{
+                          padding: '2px 6px',
+                          fontSize: 10,
+                          lineHeight: 1,
+                        }}
+                        onClick={() => handleReorderLists(list.id, 'left')}
+                        disabled={listIndex === 0}
+                      >
+                        ←
+                      </button>
+                      <button
+                        className="button button-ghost"
+                        style={{
+                          padding: '2px 6px',
+                          fontSize: 10,
+                          lineHeight: 1,
+                        }}
+                        onClick={() => handleReorderLists(list.id, 'right')}
+                        disabled={listIndex === lists.length - 1}
+                      >
+                        →
+                      </button>
+                    </div>
+                    <button
+                      className="button button-ghost"
+                      style={{
+                        padding: '2px 6px',
+                        fontSize: 10,
+                        lineHeight: 1,
+                      }}
+                      onClick={(e) =>
+                        handleRenameList(e, list.id, list.title)
+                      }
+                    >
+                      Rename
+                    </button>
+                    <button
+                      className="button button-ghost"
+                      style={{
+                        padding: '2px 6px',
+                        fontSize: 10,
+                        lineHeight: 1,
+                      }}
+                      onClick={(e) =>
+                        handleDeleteList(e, list.id, list.title)
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
+
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    color: 'rgba(226,232,240,0.9)',
+                  }}
+                >
+                  Position: {list.position}
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    marginTop: 2,
+                    fontSize: 11,
+                    color: 'rgba(226,232,240,0.75)',
+                  }}
+                >
+                  Created on{' '}
+                  {new Date(list.createdAt).toLocaleString('en-US', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                </p>
+
+                {/* cards */}
+                <SortableContext
+                  items={cards.map((card: any) => toCardDndId(card.id))}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <CardsDropzone
+                    listId={list.id}
+                    activeListId={activeDragListId}
+                  >
+                    {cards.map((card: any, cardIndex: number) => (
+                      <SortableCard
+                        key={card.id}
+                        card={card}
+                        list={list}
+                        lists={lists}
+                        moveTargets={moveTargets}
+                        currentBoardTitle={board?.title || 'Board'}
+                        cardIndex={cardIndex}
+                        cardsLength={cards.length}
+                        handleMoveCardToList={handleMoveCardToList}
+                        handleReorderCard={handleReorderCard}
+                        handleMoveCard={handleMoveCard}
+                        handleDeleteCard={handleDeleteCard}
+                        onOpenCardDetails={handleOpenCardDetails}
+                      />
+                    ))}
+
+                    {activeCardListId === list.id ? (
+                      <form onSubmit={(e) => handleAddCard(e, list.id)}>
+                        <input
+                          type="text"
+                          value={cardTitle}
+                          onChange={(e) =>
+                            handleChangeCardTitle(list.id, e.target.value)
+                          }
+                          autoFocus
+                          placeholder="Card title"
+                          style={{
+                            width: '100%',
+                            borderRadius: 8,
+                            padding: 6,
+                            border: '1px solid rgba(199,125,255,0.7)',
+                            backgroundColor: 'rgba(6, 5, 24, 0.95)',
+                            color: '#f9f5ff',
+                            fontSize: 12,
+                            marginBottom: 6,
+                          }}
+                        />
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: 6,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="button button-primary"
+                            style={{ padding: '4px 10px', fontSize: 12 }}
+                          >
+                            Add card
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-ghost"
+                            style={{ padding: '4px 8px', fontSize: 12 }}
+                            onClick={() => handleCancelAddCard(list.id)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddCard(list.id)}
+                        style={{
+                          marginTop: 2,
+                          borderRadius: 8,
+                          padding: '6px 8px',
+                          width: '100%',
+                          textAlign: 'left',
+                          fontSize: 12,
+                          border: '1px dashed rgba(199,125,255,0.6)',
+                          backgroundColor: 'transparent',
+                          color: 'rgba(240, 237, 255, 0.9)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        + Add a card
+                      </button>
+                    )}
+                  </CardsDropzone>
+                </SortableContext>
+              </div>
+            );
+          })}
+          <div
+            style={{
+              minWidth: 220,
+              maxWidth: 260,
+              borderRadius: 12,
+              padding: 10,
+              background: 'rgba(11, 15, 35, 0.45)',
+              border: '1px dashed rgba(199,125,255,0.6)',
+              height: 'fit-content',
+            }}
+          >
+            {isAddingList ? (
+              <form onSubmit={handleCreateList} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Column title"
+                  value={newListTitle}
+                  onChange={(e) => setNewListTitle(e.target.value)}
+                  autoFocus
+                />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button type="submit" className="button button-primary">
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() => {
+                      setIsAddingList(false);
+                      setNewListTitle('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="button button-ghost"
+                style={{ width: '100%', textAlign: 'left' }}
+                onClick={() => setIsAddingList(true)}
+              >
+                + Add another list
+              </button>
+            )}
+          </div>
+        </div>
       </section>
 
       </DndContext>
