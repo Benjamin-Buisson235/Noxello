@@ -394,6 +394,9 @@ function BoardDetailPage() {
   const [newChecklistText, setNewChecklistText] = useState('');
   const [comments, setComments] = useState<any[]>([]);
   const [newCommentContent, setNewCommentContent] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | 'overdue' | 'dueSoon'>('all');
+  const [filterLabelIds, setFilterLabelIds] = useState<number[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
@@ -1336,6 +1339,62 @@ function BoardDetailPage() {
 
   const checklistDoneCount = checklistItems.filter((item) => item.done).length;
   const checklistTotalCount = checklistItems.length;
+  const filtersActive =
+    searchQuery.trim() !== '' ||
+    dateFilter !== 'all' ||
+    filterLabelIds.length > 0;
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueSoonLimit = new Date(today);
+  dueSoonLimit.setDate(today.getDate() + 7);
+
+  const filteredLists = lists.map((list: any) => {
+    const cards = list.cards || [];
+    const filteredCards = cards.filter((card: any) => {
+      if (normalizedQuery) {
+        const title = (card.title || '').toLowerCase();
+        const description = (card.description || '').toLowerCase();
+        if (!title.includes(normalizedQuery) && !description.includes(normalizedQuery)) {
+          return false;
+        }
+      }
+
+      if (filterLabelIds.length > 0) {
+        const cardLabelIds = (card.cardLabels || [])
+          .map((entry: any) => entry.label?.id ?? entry.labelId)
+          .filter((value: any) => Number.isFinite(value));
+        const hasAnyLabel = filterLabelIds.some((labelId) =>
+          cardLabelIds.includes(labelId)
+        );
+        if (!hasAnyLabel) {
+          return false;
+        }
+      }
+
+      if (dateFilter !== 'all') {
+        const dueLabel = toDateInputValue(card.dueDate);
+        if (!dueLabel) {
+          return false;
+        }
+        const dueDate = new Date(`${dueLabel}T00:00:00`);
+        if (dateFilter === 'overdue' && !(dueDate < today)) {
+          return false;
+        }
+        if (dateFilter === 'dueSoon' && (dueDate < today || dueDate > dueSoonLimit)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    return { ...list, cards: filteredCards };
+  });
+  const resultCount = filteredLists.reduce(
+    (sum: number, list: any) => sum + (list.cards || []).length,
+    0
+  );
 
   if (loadingUser || loadingBoard) {
     return <p style={{ padding: 24 }}>Loading…</p>;
