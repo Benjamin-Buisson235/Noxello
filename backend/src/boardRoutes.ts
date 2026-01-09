@@ -321,7 +321,7 @@ boardRoutes.get(
       }
 
       const cards = await prisma.card.findMany({
-        where: { listId },
+        where: { listId, archived: false },
         orderBy: { position: 'asc' },
       });
 
@@ -1043,9 +1043,124 @@ boardRoutes.delete(
   }
 );
 
+boardRoutes.patch(
+  '/:boardId/lists/:listId/cards/:cardId/archive',
+  async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = Number(req.params.boardId);
+      const listId = Number(req.params.listId);
+      const cardId = Number(req.params.cardId);
 
+      const board = await prisma.board.findFirst({
+        where: { id: boardId, ownerId: userId },
+      });
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
 
+      const card = await prisma.card.findFirst({
+        where: {
+          id: cardId,
+          list: {
+            id: listId,
+            boardId,
+          },
+        },
+      });
+      if (!card) {
+        return res.status(404).json({ message: 'Card not found' });
+      }
 
+      const updated = await prisma.card.update({
+        where: { id: card.id },
+        data: { archived: true, archivedAt: new Date() },
+      });
+
+      return res.json({ card: updated });
+    } catch (err) {
+      console.error('Archive card error ====>', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+boardRoutes.patch(
+  '/:boardId/lists/:listId/cards/:cardId/unarchive',
+  async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = Number(req.params.boardId);
+      const listId = Number(req.params.listId);
+      const cardId = Number(req.params.cardId);
+
+      const board = await prisma.board.findFirst({
+        where: { id: boardId, ownerId: userId },
+      });
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      const card = await prisma.card.findFirst({
+        where: {
+          id: cardId,
+          list: {
+            id: listId,
+            boardId,
+          },
+        },
+      });
+      if (!card) {
+        return res.status(404).json({ message: 'Card not found' });
+      }
+
+      const updated = await prisma.card.update({
+        where: { id: card.id },
+        data: { archived: false, archivedAt: null },
+      });
+
+      return res.json({ card: updated });
+    } catch (err) {
+      console.error('Unarchive card error ====>', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+boardRoutes.get('/:boardId/archived', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.boardId);
+
+    const board = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+      include: {
+        lists: {
+          orderBy: { position: 'asc' },
+          include: {
+            cards: {
+              where: { archived: true },
+              orderBy: { position: 'asc' },
+              include: {
+                cardLabels: { include: { label: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const { lists } = board;
+    return res.json({ lists });
+  } catch (err) {
+    console.error('Get archived cards error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 boardRoutes.put(
   '/:boardId/lists/:listId/cards/:cardId/move',
@@ -1269,6 +1384,7 @@ boardRoutes.get('/:id/full', async (req: AuthRequest, res) => {
           orderBy: { position: 'asc' },
           include: {
             cards: {
+              where: { archived: false },
               orderBy: { position: 'asc' },
               include: {
                 cardLabels: {
