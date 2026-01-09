@@ -48,6 +48,8 @@ model Card {
   description String?
   position  Int
   dueDate   DateTime?
+  archived  Boolean  @default(false)
+  archivedAt DateTime?
 
   list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
   listId    Int
