@@ -380,6 +380,7 @@ function BoardDetailPage() {
       title: string;
       description?: string | null;
       dueDate?: string | null;
+      archived?: boolean;
       listId: number;
     }
   >(null);
@@ -397,6 +398,7 @@ function BoardDetailPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'overdue' | 'dueSoon'>('all');
   const [filterLabelIds, setFilterLabelIds] = useState<number[]>([]);
+  const [archivedLists, setArchivedLists] = useState<any[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
@@ -509,6 +511,19 @@ function BoardDetailPage() {
     }
   };
 
+  const fetchArchivedLists = async () => {
+    if (!user || !id) return;
+    try {
+      const res = await api.get(`/boards/${id}/archived`);
+      setArchivedLists(res.data.lists || []);
+    } catch (err) {
+      console.error('Fetch archived cards error ====>', err);
+      setArchivedLists([]);
+    }
+  };
+
+
+
 
 
 
@@ -538,6 +553,7 @@ function BoardDetailPage() {
     fetchBoardFull();
     fetchMoveTargets();
     fetchBoardLabels();
+    fetchArchivedLists();
   }, [user, id]);
 
   const handleBack = () => {
@@ -1026,6 +1042,7 @@ function BoardDetailPage() {
       title: card.title,
       description: card.description ?? '',
       dueDate: card.dueDate ?? null,
+      archived: !!card.archived,
       listId,
     });
     setEditCardTitle(card.title || '');
@@ -1034,9 +1051,8 @@ function BoardDetailPage() {
     setSelectedLabelIds(labelIds);
     setInitialLabelIds(labelIds);
     setNewChecklistText('');
-    setComments([]);
-    setNewCommentContent('');
     fetchChecklistItems(card.id, listId);
+    setNewCommentContent('');
     fetchComments(card.id, listId);
     setIsDirty(false);
     setSaveStatus('idle');
@@ -1122,6 +1138,8 @@ function BoardDetailPage() {
     setCardToEdit(null);
     setChecklistItems([]);
     setNewChecklistText('');
+    setComments([]);
+    setNewCommentContent('');
   };
 
   const handleClearDueDate = async () => {
@@ -1292,6 +1310,43 @@ function BoardDetailPage() {
       fetchComments(cardToEdit.id, cardToEdit.listId);
     }
   };
+
+  const handleArchiveCard = async () => {
+    if (!cardToEdit) return;
+    try {
+      await api.patch(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/archive`
+      );
+      setCardToEdit(null);
+      fetchBoardFull();
+      fetchArchivedLists();
+    } catch (err) {
+      console.error('Archive card error ====>', err);
+    }
+  };
+
+  const handleUnarchiveCard = async () => {
+    if (!cardToEdit) return;
+    try {
+      await api.patch(
+        `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/unarchive`
+      );
+      setCardToEdit(null);
+      fetchBoardFull();
+      fetchArchivedLists();
+    } catch (err) {
+      console.error('Unarchive card error ====>', err);
+    }
+  };
+
+  const handleDeleteCardFromModal = () => {
+    if (!cardToEdit) return;
+    handleDeleteCard(cardToEdit.listId, { id: cardToEdit.id, title: cardToEdit.title });
+    setCardToEdit(null);
+    fetchArchivedLists();
+  };
+
+
 
 
 
@@ -1587,6 +1642,74 @@ function BoardDetailPage() {
       </section>
 
       </DndContext>
+
+      <section className="card" style={{ marginTop: 16 }}>
+        <h2 style={{ marginTop: 0, fontSize: 18 }}>Archived cards</h2>
+        {archivedLists.length === 0 ||
+        archivedLists.every((list: any) => (list.cards || []).length === 0) ? (
+          <p className="text-muted" style={{ marginTop: 4 }}>
+            No archived cards.
+          </p>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              gap: 12,
+              overflowX: 'auto',
+              paddingBottom: 4,
+              marginTop: 8,
+            }}
+          >
+            {archivedLists.map((list: any) => (
+              <div
+                key={list.id}
+                style={{
+                  minWidth: 220,
+                  maxWidth: 260,
+                  borderRadius: 12,
+                  padding: 10,
+                  background:
+                    'linear-gradient(145deg, rgba(30,30,45,0.96), rgba(50,40,70,0.96))',
+                  border: '1px solid rgba(199,125,255,0.45)',
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    color: '#fdfcff',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                  }}
+                >
+                  {list.title}
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {(list.cards || []).map((card: any) => (
+                    <div
+                      key={card.id}
+                      onClick={() => handleOpenCardDetails(card, list.id)}
+                      style={{
+                        borderRadius: 8,
+                        padding: '6px 8px',
+                        backgroundColor: 'rgba(11, 15, 35, 0.7)',
+                        border: '1px solid rgba(157,78,221,0.4)',
+                        fontSize: 12,
+                        color: '#f9f5ff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {card.title}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+
 
       {/* card details modal */}
       {cardToEdit && (
@@ -1966,6 +2089,41 @@ function BoardDetailPage() {
                 Save
               </button>
             </div>
+            <div
+              style={{
+                marginTop: 12,
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 10,
+              }}
+            >
+              {!cardToEdit.archived ? (
+                <button
+                  className="button button-primary"
+                  type="button"
+                  onClick={handleArchiveCard}
+                >
+                  Archive
+                </button>
+              ) : (
+                <button
+                  className="button button-primary"
+                  type="button"
+                  onClick={handleUnarchiveCard}
+                >
+                  Unarchive
+                </button>
+              )}
+              <button
+                className="button button-ghost"
+                type="button"
+                onClick={handleDeleteCardFromModal}
+                style={{ color: 'rgba(248, 113, 113, 0.95)' }}
+              >
+                Delete
+              </button>
+            </div>
+
           </div>
         </div>
       )}
