@@ -523,12 +523,6 @@ function BoardDetailPage() {
     }
   };
 
-
-
-
-
-
-
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -1348,10 +1342,6 @@ function BoardDetailPage() {
     fetchArchivedLists();
   };
 
-
-
-
-
   const handleModalOverlayClick = () => {
     handleCancelCardDetails();
   };
@@ -1967,8 +1957,6 @@ function BoardDetailPage() {
         )}
       </section>
 
-
-
       {/* card details modal */}
       {cardToEdit && (
         <div style={overlayStyle} onClick={handleModalOverlayClick}>
@@ -2106,8 +2094,22 @@ function BoardDetailPage() {
                   </button>
                 </div>
               </div>
-            </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <label style={{ fontSize: 12, color: 'rgba(226,232,240,0.9)' }}>
+                    Checklist
+                  </label>
+                  <span style={{ fontSize: 11, color: 'rgba(226,232,240,0.7)' }}>
+                    {checklistDoneCount} / {checklistTotalCount}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {checklistItems.length === 0 && (
                     <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
                       No checklist items yet.
@@ -2381,7 +2383,6 @@ function BoardDetailPage() {
                 Delete
               </button>
             </div>
-
           </div>
         </div>
       )}

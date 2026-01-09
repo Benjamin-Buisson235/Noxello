@@ -1,1 +1,4 @@
 node_modules
+frontend/src/pages/BoardDetailPage.tsx
+backend/prisma/dev.db
+backend/package-lock.json
