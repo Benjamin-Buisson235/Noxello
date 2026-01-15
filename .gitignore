@@ -1,5 +1,6 @@
 node_modules
 frontend/src/pages/BoardDetailPage.tsx
+backend/dist
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
 backend/prisma/dev.db-shm
