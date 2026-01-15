@@ -214,13 +214,19 @@ npm run dev
 ```
 
 - The backend runs on `http://localhost:4000`
-- The SQLite database is at `backend/dev.db`
+- For Postgres, set `DATABASE_URL` to your connection string (see `backend/.env.example`)
 - The `.env` file should contain at least:
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require"
 JWT_SECRET="change-me-to-a-longer-secret"
 PORT=4000
+```
+
+- For production deployments, use:
+
+```bash
+npx prisma migrate deploy
 ```
 
 ### 2. Frontend
