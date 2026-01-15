@@ -16,6 +16,10 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.use('/auth', authRoutes);
 app.use('/boards', boardRoutes);
 
