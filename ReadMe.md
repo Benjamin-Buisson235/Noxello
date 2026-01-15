@@ -229,6 +229,12 @@ PORT=4000
 npx prisma migrate deploy
 ```
 
+- On Render, set the Pre-Deploy Command to:
+
+```bash
+npx prisma migrate deploy
+```
+
 ### 2. Frontend
 
 ```bash
