@@ -34,7 +34,7 @@ const LoginPage = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="app-title">MiniTrello</h1>
+        <h1 className="app-title">Noxello</h1>
         <p className="app-subtitle">
           Sign in to access your boards.
         </p>

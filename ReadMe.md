@@ -1,6 +1,6 @@
-# MiniTrello
+# Noxello
 
-MiniTrello is a simplified version of Trello, built solo by me, Benjamin B, for an Epitech project.  
+Noxello is a simplified version of Trello, built solo by me, Benjamin B, for an Epitech project.  
 The goal: organize work as **boards**, **columns** (lists) and **cards**, with a clean split between frontend and backend.
 
 ---
