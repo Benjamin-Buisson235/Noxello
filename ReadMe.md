@@ -15,8 +15,7 @@ Recreate the core principles of Trello:
 - Move cards between columns
 - Secure everything with **user authentication**
 - Modern front + back architecture
-
-Drag & drop is not implemented yet, but the data model and API are ready for it.
+- Drag & drop for cards between columns
 
 ---
 
@@ -34,7 +33,7 @@ Technologies:
 - **Node.js**, **TypeScript**
 - **Express** (REST routes)
 - **Prisma** (ORM)
-- **SQLite** (dev database)
+- **PostgreSQL** (via `DATABASE_URL`)
 - **JWT** for authentication
 
 Key models:
@@ -47,7 +46,13 @@ Key models:
 - `List` (column)  
   `id`, `title`, `position`, `boardId`
 - `Card`  
-  `id`, `title`, `position`, `listId`
+  `id`, `title`, `description`, `dueDate`, `archived`, `position`, `listId`
+- `Label`  
+  `id`, `name`, `color`, `boardId`
+- `ChecklistItem`  
+  `id`, `text`, `done`, `position`, `cardId`
+- `Comment`  
+  `id`, `content`, `authorId`, `cardId`, `createdAt`
 
 Main routes:
 
@@ -79,9 +84,24 @@ Main routes:
 
 - `GET /boards/:boardId/lists/:listId/cards` – list cards in a column
 - `POST /boards/:boardId/lists/:listId/cards` – create a card
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId` – update card details (title/description/dueDate)
 - `PATCH /boards/:boardId/lists/:listId/cards/reorder` – reorder cards in a column
 - `PUT /boards/:boardId/lists/:listId/cards/:cardId/move` – move a card to another column
+- `PUT /boards/:boardId/lists/:listId/cards/:cardId/move-to-list` – move a card to another board/list
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/archive` – archive a card
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/unarchive` – unarchive a card
 - `DELETE /boards/:boardId/lists/:listId/cards/:cardId` – delete a card
+- `GET /boards/:boardId/labels` – list labels for a board
+- `POST /boards/:boardId/labels` – create a label
+- `PUT /boards/:boardId/lists/:listId/cards/:cardId/labels` – set labels on a card
+- `GET /boards/:boardId/lists/:listId/cards/:cardId/checklist` – list checklist items
+- `POST /boards/:boardId/lists/:listId/cards/:cardId/checklist` – add checklist item
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/checklist/:itemId` – update checklist item
+- `DELETE /boards/:boardId/lists/:listId/cards/:cardId/checklist/:itemId` – delete checklist item
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/checklist/reorder` – reorder checklist items
+- `GET /boards/:boardId/lists/:listId/cards/:cardId/comments` – list comments
+- `POST /boards/:boardId/lists/:listId/cards/:cardId/comments` – add comment
+- `DELETE /boards/:boardId/lists/:listId/cards/:cardId/comments/:commentId` – delete comment
 
 All board/list/card routes are protected by a `requireAuth` middleware that checks the JWT sent in `Authorization: Bearer <token>`.
 
@@ -158,12 +178,23 @@ Inside each column:
 - Each card has:
   - its title
   - a **Move left** / **Move right** button to send it to the previous/next column
-  - a **Move to list** dropdown to send it to any column
+  - a **Move to list** dropdown to send it to any board/list you own
   - **Move up** / **Move down** buttons to reorder within a column
   - a **Delete** button
 - Deleting a card also uses a custom confirmation modal
+- Drag & drop is enabled for cards within a column and across columns
+- Cards can be edited in a modal:
+  - title + description
+  - due date with overdue indicator
+  - labels
+  - checklist with progress
+  - comments with author and timestamp
+- Cards can be archived and are shown in a dedicated archived section
+- Search and filters:
+  - search by title or description
+  - filter by overdue and due soon
+  - filter by labels
 
-Card movement is not drag & drop yet, but the move API and left/right behaviour are in place and persist to the database.
 Column and card reordering are supported via explicit reorder endpoints.
 
 ### Interface / UX
@@ -183,21 +214,14 @@ Column and card reordering are supported via explicit reorder endpoints.
 Possible future improvements to get closer to full Trello:
 
 1. **Drag & drop**
-   - True drag & drop for cards between columns
-   - Drag & drop to reorder cards inside a column
    - Drag & drop to reorder columns inside a board
 
-2. **Richer cards**
-   - Description, due date, labels, checklists
-   - Card detail modal
-
-3. **Board collaboration**
+2. **Board collaboration**
    - Invite other users to a board
    - Basic permissions (owner / member)
 
-4. **Quality of life**
+3. **Quality of life**
    - Global loading & error handling
-   - Search/filter cards
    - Better responsive design (mobile view)
 
 ---
@@ -246,6 +270,11 @@ npm run dev
 - The frontend runs on `http://localhost:5173`
 - Axios configuration uses `VITE_API_URL` when defined, otherwise defaults to `http://localhost:4000`
   - See `frontend/.env.example` for the expected env var name
+
+### Deployment (Managed)
+
+- On Vercel, set `VITE_API_URL` to your backend URL (e.g. `https://api.example.com`)
+- Vite environment variables must be prefixed with `VITE_`
 
 ---
 
