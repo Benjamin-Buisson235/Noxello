@@ -6,16 +6,102 @@ const boardRoutes = Router();
 
 boardRoutes.use(requireAuth);
 
+const getAccessibleBoard = async (boardId: number, userId: number) =>
+  prisma.board.findFirst({
+    where: {
+      id: boardId,
+      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+    },
+  });
+
 boardRoutes.get('/', async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!;
     const boards = await prisma.board.findMany({
-      where: { ownerId: userId },
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
       orderBy: { createdAt: 'asc' },
     });
     return res.json({ boards });
   } catch (err) {
     console.error('Get boards error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.get('/invites', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const invites = await prisma.boardInvite.findMany({
+      where: { inviteeId: userId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        board: { select: { id: true, title: true } },
+        inviter: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    return res.json({
+      invites: invites.map((invite) => ({
+        id: invite.id,
+        boardId: invite.boardId,
+        boardTitle: invite.board.title,
+        inviter: invite.inviter,
+        createdAt: invite.createdAt,
+      })),
+    });
+  } catch (err) {
+    console.error('Get invites error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.post('/invites/:inviteId/accept', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const inviteId = Number(req.params.inviteId);
+
+    const invite = await prisma.boardInvite.findFirst({
+      where: { id: inviteId, inviteeId: userId },
+      include: { board: { select: { id: true, title: true } } },
+    });
+    if (!invite) {
+      return res.status(404).json({ message: 'Invite not found' });
+    }
+
+    await prisma.$transaction([
+      prisma.boardMember.upsert({
+        where: { boardId_userId: { boardId: invite.boardId, userId } },
+        update: {},
+        create: { boardId: invite.boardId, userId, role: 'MEMBER' },
+      }),
+      prisma.boardInvite.delete({ where: { id: invite.id } }),
+    ]);
+
+    return res.json({ boardId: invite.boardId, boardTitle: invite.board.title });
+  } catch (err) {
+    console.error('Accept invite error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.delete('/invites/:inviteId', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const inviteId = Number(req.params.inviteId);
+
+    const invite = await prisma.boardInvite.findFirst({
+      where: { id: inviteId, inviteeId: userId },
+    });
+    if (!invite) {
+      return res.status(404).json({ message: 'Invite not found' });
+    }
+
+    await prisma.boardInvite.delete({ where: { id: invite.id } });
+    return res.status(204).send();
+  } catch (err) {
+    console.error('Decline invite error ====>', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -48,9 +134,7 @@ boardRoutes.get('/:id/lists', async (req: AuthRequest, res) => {
     const userId = req.userId!;
     const boardId = Number(req.params.id);
 
-    const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(boardId, userId);
 
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
@@ -78,9 +162,7 @@ boardRoutes.post('/:id/lists', async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'Title is required' });
     }
 
-    const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(boardId, userId);
 
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
@@ -113,9 +195,7 @@ boardRoutes.get('/:boardId/labels', async (req: AuthRequest, res) => {
     const userId = req.userId!;
     const boardId = Number(req.params.boardId);
 
-    const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(boardId, userId);
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
     }
@@ -142,9 +222,7 @@ boardRoutes.post('/:boardId/labels', async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'Name is required' });
     }
 
-    const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(boardId, userId);
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
     }
@@ -190,9 +268,7 @@ boardRoutes.patch('/:id/lists/reorder', async (req: AuthRequest, res) => {
         .json({ message: 'orderedListIds must be unique' });
     }
 
-    const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(boardId, userId);
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
     }
@@ -237,9 +313,7 @@ boardRoutes.put('/:boardId/lists/:listId', async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'Title is required' });
     }
 
-    const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(boardId, userId);
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
     }
@@ -271,9 +345,7 @@ boardRoutes.delete('/:boardId/lists/:listId', async (req: AuthRequest, res) => {
     const boardId = Number(req.params.boardId);
     const listId = Number(req.params.listId);
 
-    const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(boardId, userId);
 
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
@@ -306,9 +378,7 @@ boardRoutes.get(
       const boardId = Number(req.params.boardId);
       const listId = Number(req.params.listId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -346,9 +416,7 @@ boardRoutes.post(
         return res.status(400).json({ message: 'Title is required' });
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -412,9 +480,7 @@ boardRoutes.patch(
           .json({ message: 'orderedCardIds must be unique' });
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -480,9 +546,7 @@ boardRoutes.patch(
         }
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -553,9 +617,7 @@ boardRoutes.put(
 
       const uniqueIds = Array.from(new Set(parsedIds));
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -619,9 +681,7 @@ boardRoutes.get(
       const listId = Number(req.params.listId);
       const cardId = Number(req.params.cardId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -666,9 +726,7 @@ boardRoutes.post(
         return res.status(400).json({ message: 'Text is required' });
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -732,9 +790,7 @@ boardRoutes.patch(
         }
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -785,9 +841,7 @@ boardRoutes.delete(
       const cardId = Number(req.params.cardId);
       const itemId = Number(req.params.itemId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -841,9 +895,7 @@ boardRoutes.patch(
         return res.status(400).json({ message: 'orderedItemIds must contain only numbers' });
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -900,9 +952,7 @@ boardRoutes.get(
       const listId = Number(req.params.listId);
       const cardId = Number(req.params.cardId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -952,9 +1002,7 @@ boardRoutes.post(
         return res.status(400).json({ message: 'Content is required' });
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -1003,9 +1051,7 @@ boardRoutes.delete(
       const cardId = Number(req.params.cardId);
       const commentId = Number(req.params.commentId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -1052,9 +1098,7 @@ boardRoutes.patch(
       const listId = Number(req.params.listId);
       const cardId = Number(req.params.cardId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -1094,9 +1138,7 @@ boardRoutes.patch(
       const listId = Number(req.params.listId);
       const cardId = Number(req.params.cardId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -1133,7 +1175,10 @@ boardRoutes.get('/:boardId/archived', async (req: AuthRequest, res) => {
     const boardId = Number(req.params.boardId);
 
     const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
+      where: {
+        id: boardId,
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
       include: {
         lists: {
           orderBy: { position: 'asc' },
@@ -1176,9 +1221,7 @@ boardRoutes.put(
         return res.status(400).json({ message: 'targetListId is required' });
       }
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -1247,16 +1290,12 @@ boardRoutes.put(
           .json({ message: 'targetBoardId and targetListId must be numbers' });
       }
 
-      const sourceBoard = await prisma.board.findFirst({
-        where: { id: sourceBoardId, ownerId: userId },
-      });
+      const sourceBoard = await getAccessibleBoard(sourceBoardId, userId);
       if (!sourceBoard) {
         return res.status(404).json({ message: 'Board not found' });
       }
 
-      const targetBoard = await prisma.board.findFirst({
-        where: { id: parsedTargetBoardId, ownerId: userId },
-      });
+      const targetBoard = await getAccessibleBoard(parsedTargetBoardId, userId);
       if (!targetBoard) {
         return res.status(404).json({ message: 'Target board not found' });
       }
@@ -1320,9 +1359,7 @@ boardRoutes.delete(
       const listId = Number(req.params.listId);
       const cardId = Number(req.params.cardId);
 
-      const board = await prisma.board.findFirst({
-        where: { id: boardId, ownerId: userId },
-      });
+      const board = await getAccessibleBoard(boardId, userId);
       if (!board) {
         return res.status(404).json({ message: 'Board not found' });
       }
@@ -1357,9 +1394,7 @@ boardRoutes.get('/:id', async (req: AuthRequest, res) => {
     const userId = req.userId!;
     const id = Number(req.params.id);
 
-    const board = await prisma.board.findFirst({
-      where: { id, ownerId: userId },
-    });
+    const board = await getAccessibleBoard(id, userId);
 
     if (!board) {
       return res.status(404).json({ message: 'Board not found' });
@@ -1378,7 +1413,10 @@ boardRoutes.get('/:id/full', async (req: AuthRequest, res) => {
     const boardId = Number(req.params.id);
 
     const board = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
+      where: {
+        id: boardId,
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
       include: {
         lists: {
           orderBy: { position: 'asc' },
@@ -1414,16 +1452,15 @@ boardRoutes.get('/:id/move-targets', async (req: AuthRequest, res) => {
     const userId = req.userId!;
     const boardId = Number(req.params.id);
 
-    const currentBoard = await prisma.board.findFirst({
-      where: { id: boardId, ownerId: userId },
-      select: { id: true },
-    });
+    const currentBoard = await getAccessibleBoard(boardId, userId);
     if (!currentBoard) {
       return res.status(404).json({ message: 'Board not found' });
     }
 
     const boards = await prisma.board.findMany({
-      where: { ownerId: userId },
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
       orderBy: { createdAt: 'asc' },
       select: {
         id: true,
@@ -1457,6 +1494,147 @@ boardRoutes.get('/:id/move-targets', async (req: AuthRequest, res) => {
     return res.json({ currentBoardId: boardId, targets });
   } catch (err) {
     console.error('Get move targets error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.get('/:id/members', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.id);
+
+    const board = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      include: {
+        owner: { select: { id: true, name: true, email: true } },
+        members: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const ownerEntry = {
+      userId: board.owner.id,
+      name: board.owner.name,
+      email: board.owner.email,
+      role: 'OWNER',
+      isOwner: true,
+    };
+
+    const memberEntries = board.members
+      .filter((member) => member.userId !== board.ownerId)
+      .map((member) => ({
+        userId: member.userId,
+        name: member.user.name,
+        email: member.user.email,
+        role: member.role,
+        isOwner: false,
+      }));
+
+    return res.json({ members: [ownerEntry, ...memberEntries] });
+  } catch (err) {
+    console.error('Get board members error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.post('/:id/invite', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.id);
+    const { email } = req.body;
+
+    if (!email || String(email).trim() === '') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const board = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+    });
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    const targetEmail = String(email).trim();
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: targetEmail, mode: 'insensitive' } },
+      select: { id: true, name: true, email: true },
+    });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.id === userId) {
+      return res.status(400).json({ message: 'Cannot invite yourself' });
+    }
+
+    const existingMember = await prisma.boardMember.findFirst({
+      where: { boardId, userId: user.id },
+    });
+    if (existingMember) {
+      return res.status(400).json({ message: 'User is already a member' });
+    }
+
+    const invite = await prisma.boardInvite.upsert({
+      where: { boardId_inviteeId: { boardId, inviteeId: user.id } },
+      update: {},
+      create: { boardId, inviterId: userId, inviteeId: user.id },
+    });
+
+    return res.status(201).json({
+      invite: {
+        id: invite.id,
+        boardId: invite.boardId,
+        inviteeId: invite.inviteeId,
+        inviterId: invite.inviterId,
+        createdAt: invite.createdAt,
+      },
+    });
+  } catch (err) {
+    console.error('Invite member error ====>', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+boardRoutes.delete('/:id/members/:userId', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const boardId = Number(req.params.id);
+    const memberUserId = Number(req.params.userId);
+
+    const board = await prisma.board.findFirst({
+      where: { id: boardId, ownerId: userId },
+    });
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    if (memberUserId === board.ownerId) {
+      return res.status(400).json({ message: 'Cannot remove the owner' });
+    }
+
+    const membership = await prisma.boardMember.findFirst({
+      where: { boardId, userId: memberUserId },
+    });
+    if (!membership) {
+      return res.status(404).json({ message: 'Member not found' });
+    }
+
+    await prisma.boardMember.delete({
+      where: { boardId_userId: { boardId, userId: memberUserId } },
+    });
+
+    return res.status(204).send();
+  } catch (err) {
+    console.error('Remove member error ====>', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
