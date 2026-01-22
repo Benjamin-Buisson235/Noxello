@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum BoardRole {
+  MEMBER
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -15,6 +19,9 @@ model User {
   createdAt    DateTime @default(now())
 
   boards       Board[]
+  boardMemberships BoardMember[]
+  invitesSent BoardInvite[] @relation("InvitesSent")
+  invitesReceived BoardInvite[] @relation("InvitesReceived")
   comments     Comment[]
 }
 
@@ -28,6 +35,34 @@ model Board {
 
   lists   List[]
   labels  Label[]
+  members BoardMember[]
+  invites BoardInvite[]
+}
+
+model BoardMember {
+  boardId   Int
+  userId    Int
+  role      BoardRole @default(MEMBER)
+  createdAt DateTime  @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([boardId, userId])
+}
+
+model BoardInvite {
+  id         Int      @id @default(autoincrement())
+  boardId    Int
+  inviterId  Int
+  inviteeId  Int
+  createdAt  DateTime @default(now())
+
+  board   Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  inviter User  @relation("InvitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User  @relation("InvitesReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, inviteeId])
 }
 
 model List {
