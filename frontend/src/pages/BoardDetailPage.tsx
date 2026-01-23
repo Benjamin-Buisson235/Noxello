@@ -396,6 +396,13 @@ function BoardDetailPage() {
   const [newChecklistText, setNewChecklistText] = useState('');
   const [comments, setComments] = useState<any[]>([]);
   const [newCommentContent, setNewCommentContent] = useState('');
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteStatus, setInviteStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [inviteMessage, setInviteMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'overdue' | 'dueSoon'>('all');
   const [filterLabelIds, setFilterLabelIds] = useState<number[]>([]);
@@ -435,6 +442,7 @@ function BoardDetailPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
+  const isOwner = board?.ownerId === user?.id;
 
   const findListByCardId = (cardId: number) =>
     lists.find((list: any) =>
@@ -523,6 +531,21 @@ function BoardDetailPage() {
     }
   };
 
+  const fetchMembers = async () => {
+    if (!user || !id) return;
+    try {
+      setMembersLoading(true);
+      setMembersError('');
+      const res = await api.get(`/boards/${id}/members`);
+      setMembers(res.data.members || []);
+    } catch (err) {
+      console.error('Fetch members error ====>', err);
+      setMembersError('Unable to load members.');
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) {
@@ -559,6 +582,52 @@ function BoardDetailPage() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const handleOpenMembers = () => {
+    setShowMembersModal(true);
+    setInviteStatus('idle');
+    setInviteMessage('');
+    fetchMembers();
+  };
+
+  const handleCloseMembers = () => {
+    setShowMembersModal(false);
+    setInviteStatus('idle');
+    setInviteMessage('');
+  };
+
+  const handleInviteMember = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!inviteEmail.trim()) {
+      setInviteStatus('error');
+      setInviteMessage('Email is required.');
+      return;
+    }
+    try {
+      setInviteStatus('idle');
+      setInviteMessage('');
+      await api.post(`/boards/${id}/invite`, { email: inviteEmail.trim() });
+      setInviteEmail('');
+      setInviteStatus('success');
+      setInviteMessage('Invite sent.');
+      fetchMembers();
+    } catch (err) {
+      console.error('Invite member error ====>', err);
+      const message =
+        err?.response?.data?.message || 'Unable to invite this user.';
+      setInviteStatus('error');
+      setInviteMessage(message);
+    }
+  };
+
+  const handleRemoveMember = async (memberUserId: number) => {
+    try {
+      await api.delete(`/boards/${id}/members/${memberUserId}`);
+      fetchMembers();
+    } catch (err) {
+      console.error('Remove member error ====>', err);
+    }
   };
 
   const handleCreateList = async (e: React.FormEvent) => {
@@ -1486,6 +1555,9 @@ function BoardDetailPage() {
           <button className="button button-ghost" onClick={handleBack}>
             Back to boards
           </button>
+          <button className="button button-ghost" onClick={handleOpenMembers}>
+            Members
+          </button>
           <button className="button button-ghost" onClick={handleLogout}>
             Logout
           </button>
@@ -1956,6 +2028,129 @@ function BoardDetailPage() {
           </div>
         )}
       </section>
+
+      {showMembersModal && (
+        <div style={overlayStyle} onClick={handleCloseMembers}>
+          <div style={dialogStyle} onClick={(event) => event.stopPropagation()}>
+            <h3 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>
+              Members
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {membersLoading && (
+                <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.8)' }}>
+                  Loading members…
+                </span>
+              )}
+              {!membersLoading && membersError && (
+                <span style={{ fontSize: 12, color: 'rgba(248, 113, 113, 0.95)' }}>
+                  {membersError}
+                </span>
+              )}
+              {!membersLoading && !membersError && members.length === 0 && (
+                <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
+                  No members yet.
+                </span>
+              )}
+              {!membersLoading &&
+                members.map((member: any) => (
+                  <div
+                    key={member.userId}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(157,78,221,0.35)',
+                      backgroundColor: 'rgba(11, 15, 35, 0.6)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ fontSize: 12, color: '#f9f5ff' }}>
+                        {member.name || 'Unnamed'}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'rgba(226,232,240,0.7)' }}>
+                        {member.email}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {member.isOwner && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: '2px 6px',
+                            borderRadius: 999,
+                            border: '1px solid rgba(125, 247, 200, 0.6)',
+                            color: 'rgba(125, 247, 200, 0.95)',
+                          }}
+                        >
+                          Owner
+                        </span>
+                      )}
+                      {isOwner && !member.isOwner && (
+                        <button
+                          type="button"
+                          className="button button-ghost"
+                          onClick={() => handleRemoveMember(member.userId)}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {isOwner && (
+              <form
+                onSubmit={handleInviteMember}
+                style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}
+              >
+                <label style={{ fontSize: 12, color: 'rgba(226,232,240,0.9)' }}>
+                  Invite by email
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className="input"
+                    type="email"
+                    placeholder="user@example.com"
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button type="submit" className="button button-primary">
+                    Invite
+                  </button>
+                </div>
+                {inviteMessage && (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color:
+                        inviteStatus === 'error'
+                          ? 'rgba(248, 113, 113, 0.95)'
+                          : 'rgba(125, 247, 200, 0.95)',
+                    }}
+                  >
+                    {inviteMessage}
+                  </span>
+                )}
+              </form>
+            )}
+
+            <div style={dialogButtonsStyle}>
+              <button
+                className="button button-ghost"
+                type="button"
+                onClick={handleCloseMembers}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* card details modal */}
       {cardToEdit && (
