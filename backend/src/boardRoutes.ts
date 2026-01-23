@@ -43,7 +43,7 @@ boardRoutes.get('/invites', async (req: AuthRequest, res) => {
     });
 
     return res.json({
-      invites: invites.map((invite) => ({
+      invites: invites.map((invite: any) => ({
         id: invite.id,
         boardId: invite.boardId,
         boardTitle: invite.board.title,
@@ -1483,7 +1483,7 @@ boardRoutes.get('/:id/move-targets', async (req: AuthRequest, res) => {
         : [boards[currentIndex], ...boards.slice(0, currentIndex), ...boards.slice(currentIndex + 1)];
 
     const targets = orderedBoards.flatMap((board) =>
-      board.lists.map((list) => ({
+      board.lists.map((list: any) => ({
         boardId: board.id,
         boardTitle: board.title,
         listId: list.id,
@@ -1531,8 +1531,8 @@ boardRoutes.get('/:id/members', async (req: AuthRequest, res) => {
     };
 
     const memberEntries = board.members
-      .filter((member) => member.userId !== board.ownerId)
-      .map((member) => ({
+      .filter((member: any) => member.userId !== board.ownerId)
+      .map((member: any) => ({
         userId: member.userId,
         name: member.user.name,
         email: member.user.email,
