@@ -12,6 +12,10 @@ function BoardsPage() {
   const [error, setError] = useState(null);
   const [loadingBoards, setLoadingBoards] = useState(true);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [invites, setInvites] = useState([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [invitesError, setInvitesError] = useState('');
+  const [showInvitesModal, setShowInvitesModal] = useState(false);
 
   const [boardToDelete, setBoardToDelete] = useState<number | null>(null);
   const overlayStyle: React.CSSProperties = {
@@ -68,27 +72,71 @@ function BoardsPage() {
   useEffect(() => {
     if (!user) return;
 
-    const fetchBoards = async () => {
+    const fetchBoards = async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
       try {
-        setLoadingBoards(true);
-        setError(null);
+        if (!silent) {
+          setLoadingBoards(true);
+          setError(null);
+        }
         const res = await api.get('/boards');
         setBoards(res.data.boards || []);
       } catch (err) {
         console.error('Fetch boards error ====>', err);
-        setError('Unable to load boards.');
+        if (!silent) {
+          setError('Unable to load boards.');
+        }
       } finally {
-        setLoadingBoards(false);
+        if (!silent) {
+          setLoadingBoards(false);
+        }
+      }
+    };
+
+    const fetchInvites = async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      try {
+        if (!silent) {
+          setLoadingInvites(true);
+          setInvitesError('');
+        }
+        const res = await api.get('/boards/invites');
+        setInvites(res.data.invites || []);
+      } catch (err) {
+        console.error('Fetch invites error ====>', err);
+        if (!silent) {
+          setInvitesError('Unable to load invites.');
+        }
+      } finally {
+        if (!silent) {
+          setLoadingInvites(false);
+        }
       }
     };
 
     fetchBoards();
+    fetchInvites();
+
+    const intervalId = window.setInterval(() => {
+      fetchBoards({ silent: true });
+      fetchInvites({ silent: true });
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
   }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const handleOpenInvites = () => {
+    setShowInvitesModal(true);
+  };
+
+  const handleCloseInvites = () => {
+    setShowInvitesModal(false);
   };
 
   const handleCreateBoard = async (e: React.FormEvent) => {
@@ -153,6 +201,28 @@ function BoardsPage() {
     }
   };
 
+  const handleAcceptInvite = async (inviteId: number) => {
+    try {
+      await api.post(`/boards/invites/${inviteId}/accept`);
+      setInvites((prev) => prev.filter((invite: any) => invite.id !== inviteId));
+      const res = await api.get('/boards');
+      setBoards(res.data.boards || []);
+    } catch (err) {
+      console.error('Accept invite error ====>', err);
+      setInvitesError('Unable to accept invite.');
+    }
+  };
+
+  const handleDeclineInvite = async (inviteId: number) => {
+    try {
+      await api.delete(`/boards/invites/${inviteId}`);
+      setInvites((prev) => prev.filter((invite: any) => invite.id !== inviteId));
+    } catch (err) {
+      console.error('Decline invite error ====>', err);
+      setInvitesError('Unable to decline invite.');
+    }
+  };
+
   const cancelDeleteBoard = () => {
     setBoardToDelete(null);
   };
@@ -178,6 +248,9 @@ function BoardsPage() {
           <p className="boards-user">Signed in as {user.email}</p>
         </div>
         <div className="boards-toolbar">
+          <button className="button button-ghost" onClick={handleOpenInvites}>
+            Invites
+          </button>
           <button
             className="button button-ghost"
             onClick={() => navigate('/settings')}
@@ -256,6 +329,20 @@ function BoardsPage() {
                     >
                       {board.title}
                     </h3>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '2px 6px',
+                        borderRadius: 999,
+                        fontSize: 10,
+                        border: '1px solid rgba(199,125,255,0.55)',
+                        color: 'rgba(226,232,240,0.9)',
+                      }}
+                    >
+                      {board.ownerId === user.id ? 'Owned' : 'Shared'}
+                    </span>
                     <p
                       style={{
                         margin: 0,
@@ -354,6 +441,74 @@ function BoardsPage() {
                 onClick={confirmDeleteBoard}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showInvitesModal && (
+        <div style={overlayStyle} onClick={handleCloseInvites}>
+          <div style={dialogStyle} onClick={(event) => event.stopPropagation()}>
+            <h3 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>
+              Invites
+            </h3>
+            {loadingInvites ? (
+              <p>Loading invites…</p>
+            ) : invites.length === 0 ? (
+              <p className="text-muted">No pending invites.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {invites.map((invite: any) => (
+                  <div
+                    key={invite.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      padding: '10px 12px',
+                      borderRadius: 12,
+                      background:
+                        'linear-gradient(145deg, rgba(38,10,80,0.9), rgba(52,18,120,0.9))',
+                      border: '1px solid rgba(199,125,255,0.65)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 14, color: '#fdfcff' }}>
+                        {invite.boardTitle}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(226,232,240,0.8)' }}>
+                        Invited by {invite.inviter?.name || invite.inviter?.email || 'Unknown'} (
+                        {invite.inviter?.email || 'no email'})
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        className="button button-primary"
+                        onClick={() => handleAcceptInvite(invite.id)}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        className="button button-ghost"
+                        onClick={() => handleDeclineInvite(invite.id)}
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {invitesError && <div className="text-error">{invitesError}</div>}
+            <div style={dialogButtonsStyle}>
+              <button
+                className="button button-ghost"
+                type="button"
+                onClick={handleCloseInvites}
+              >
+                Close
               </button>
             </div>
           </div>
