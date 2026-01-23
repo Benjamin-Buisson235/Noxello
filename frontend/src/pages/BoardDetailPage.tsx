@@ -452,24 +452,31 @@ function BoardDetailPage() {
   const updateCardPositions = (cards: any[]) =>
     cards.map((card: any, index: number) => ({ ...card, position: index }));
 
-  const fetchBoardFull = async () => {
+  const fetchBoardFull = async (options?: { silent?: boolean }) => {
     if (!user || !id) return;
+    const silent = options?.silent ?? false;
     try {
-      setLoadingBoard(true);
-      setError(null);
+      if (!silent) {
+        setLoadingBoard(true);
+        setError(null);
+      }
       const res = await api.get(`/boards/${id}/full`);
       setBoard(res.data.board);
       setLists(res.data.lists || []);
     } catch (err) {
       console.error('Fetch board full error ====>', err);
-      const status = err?.response?.status;
-      if (status === 404) {
-        setError("This board doesn't exist or doesn't belong to you.");
-      } else {
-        setError('Unable to load this board.');
+      if (!silent) {
+        const status = err?.response?.status;
+        if (status === 404) {
+          setError("You don't have permission to view this board.");
+        } else {
+          setError('Unable to load this board.');
+        }
       }
     } finally {
-      setLoadingBoard(false);
+      if (!silent) {
+        setLoadingBoard(false);
+      }
     }
   };
 
@@ -572,6 +579,15 @@ function BoardDetailPage() {
     fetchMoveTargets();
     fetchBoardLabels();
     fetchArchivedLists();
+
+    const intervalId = window.setInterval(() => {
+      fetchBoardFull({ silent: true });
+      fetchMoveTargets();
+      fetchBoardLabels();
+      fetchArchivedLists();
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
   }, [user, id]);
 
   const handleBack = () => {
