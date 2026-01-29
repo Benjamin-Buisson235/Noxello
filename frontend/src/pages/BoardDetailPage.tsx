@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
   useDroppable,
@@ -62,12 +63,18 @@ function CardsDropzone({
   return (
     <div
       ref={setNodeRef}
+      data-list-scroll="true"
       style={{
         marginTop: 10,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
         minHeight: 24,
+        flex: 1,
+        minHeight: 0,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        paddingRight: 4,
         outline: 'none',
         borderRadius: 8,
       }}
@@ -1717,10 +1724,12 @@ function BoardDetailPage() {
             </p>
           )}
           <div
+            ref={columnsScrollRef}
             style={{
               display: 'flex',
               gap: 12,
               overflowX: 'auto',
+              alignItems: 'flex-start',
               paddingBottom: 4,
               marginTop: 8,
             }}
@@ -1740,6 +1749,10 @@ function BoardDetailPage() {
                     background:
                       'linear-gradient(145deg, rgba(55,10,98,0.96), rgba(92,28,168,0.96))',
                     border: '1px solid rgba(199,125,255,0.75)',
+                    maxHeight: '70vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
                   }}
                 >
                 <div
@@ -1987,6 +2000,42 @@ function BoardDetailPage() {
         </div>
       </section>
 
+        <DragOverlay zIndex={99999}>
+          {activeDragCard ? (
+            <div
+              style={{
+                borderRadius: 10,
+                padding: '8px 10px',
+                backgroundColor: 'rgba(11, 15, 35, 0.98)',
+                border: '1px solid rgba(157,78,221,0.85)',
+                fontSize: 12,
+                color: '#f9f5ff',
+                boxShadow: '0 16px 32px rgba(0,0,0,0.55)',
+                pointerEvents: 'none',
+                maxWidth: 260,
+                minWidth: 180,
+                wordBreak: 'break-word',
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                {activeDragCard.title || 'Untitled'}
+              </div>
+              {activeDragCard.dueDate && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: '2px 6px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(157,78,221,0.5)',
+                    color: 'rgba(226,232,240,0.9)',
+                  }}
+                >
+                  Due: {toDateInputValue(activeDragCard.dueDate)}
+                </span>
+              )}
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       <section className="card" style={{ marginTop: 16 }}>
