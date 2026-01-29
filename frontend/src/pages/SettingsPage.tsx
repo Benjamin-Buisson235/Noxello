@@ -12,6 +12,9 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragEnabled, setDragEnabled] = useState(() => {
+    return localStorage.getItem('dragEnabled') !== 'false';
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -72,6 +75,12 @@ function SettingsPage() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const handleToggleDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = event.target.checked;
+    setDragEnabled(enabled);
+    localStorage.setItem('dragEnabled', enabled ? 'true' : 'false');
   };
 
   if (loading) {
@@ -164,6 +173,21 @@ function SettingsPage() {
             timeStyle: 'short',
           })}
         </p>
+      </section>
+
+      <section className="card" style={{ maxWidth: 520, marginTop: 16 }}>
+        <h2 style={{ marginTop: 0, fontSize: 18 }}>Board interactions</h2>
+        <p className="text-muted" style={{ marginBottom: 12 }}>
+          Choose how you move cards in boards.
+        </p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={dragEnabled}
+            onChange={handleToggleDrag}
+          />
+          Enable drag & drop for cards
+        </label>
       </section>
     </div>
   );

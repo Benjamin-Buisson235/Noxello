@@ -371,10 +371,17 @@ function BoardDetailPage() {
 
   const [listToDelete, setListToDelete] = useState<null | { id: number; title: string }>(null);
   const [cardToDelete, setCardToDelete] = useState<
-    null | { id: number; title: string; listId: number }
+    null | { id: number; title: string; listId: number; archived?: boolean }
   >(null);
   const [activeDragCardId, setActiveDragCardId] = useState<number | null>(null);
   const [activeDragListId, setActiveDragListId] = useState<number | null>(null);
+  const columnsScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const [dragEnabled, setDragEnabled] = useState(() => {
+    return localStorage.getItem('dragEnabled') !== 'false';
+  });
+  const activeDragCard = activeDragCardId
+    ? lists.flatMap((list: any) => list.cards || []).find((card: any) => card.id === activeDragCardId)
+    : null;
   const [cardToEdit, setCardToEdit] = useState<
     null | {
       id: number;
@@ -911,6 +918,7 @@ function BoardDetailPage() {
   };
 
   const handleDragStart = (event: any) => {
+    if (!dragEnabled) return;
     const activeCardId = parseCardId(event.active.id);
     if (activeCardId === null) return;
     setActiveDragCardId(activeCardId);
@@ -919,10 +927,11 @@ function BoardDetailPage() {
   };
 
   const handleDragEnd = async (event: any) => {
+    if (!dragEnabled) return;
     try {
       const { active, over } = event;
       if (!over) {
-        fetchBoardFull();
+        fetchBoardFull({ silent: true });
         return;
       }
 
@@ -1021,6 +1030,7 @@ function BoardDetailPage() {
   };
 
   const handleDragOver = (event: any) => {
+    if (!dragEnabled) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -1074,38 +1084,97 @@ function BoardDetailPage() {
   const handleDragCancel = () => {
     setActiveDragCardId(null);
     setActiveDragListId(null);
-    fetchBoardFull();
+        fetchBoardFull({ silent: true });
   };
+
+  useEffect(() => {
+    if (activeDragCardId == null || !dragEnabled) return;
+    const container = columnsScrollRef.current;
+    if (!container) return;
+
+    const threshold = 70;
+    const speed = 14;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      if (event.clientX < rect.left + threshold) {
+        container.scrollLeft -= speed;
+      } else if (event.clientX > rect.right - threshold) {
+        container.scrollLeft += speed;
+      }
+      const target = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null;
+      const listScroller = target?.closest('[data-list-scroll="true"]') as
+        | HTMLElement
+        | null;
+      if (!listScroller) return;
+      const listRect = listScroller.getBoundingClientRect();
+      if (event.clientY < listRect.top + threshold) {
+        listScroller.scrollTop -= speed;
+      } else if (event.clientY > listRect.bottom - threshold) {
+        listScroller.scrollTop += speed;
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    return () => window.removeEventListener('pointermove', handlePointerMove);
+  }, [activeDragCardId, dragEnabled]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== 'dragEnabled') return;
+      setDragEnabled(event.newValue !== 'false');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const handleDeleteCard = (listId: number, card: any) => {
     setCardToDelete({
       id: card.id,
       title: card.title,
       listId,
+      archived: !!card.archived,
     });
   };
 
   const confirmDeleteCard = async () => {
     if (!cardToDelete) return;
 
-    const { listId, id: cardId } = cardToDelete;
+    const { listId, id: cardId, archived } = cardToDelete;
 
-    setLists((prev) =>
-      prev.map((list: any) =>
-        list.id === listId
-          ? {
-              ...list,
-              cards: (list.cards || []).filter((c: any) => c.id !== cardId),
-            }
-          : list
-      )
-    );
+    if (archived) {
+      setArchivedLists((prev) =>
+        prev
+          .map((list: any) =>
+            list.id === listId
+              ? {
+                  ...list,
+                  cards: (list.cards || []).filter((c: any) => c.id !== cardId),
+                }
+              : list
+          )
+          .filter((list: any) => (list.cards || []).length > 0)
+      );
+    } else {
+      setLists((prev) =>
+        prev.map((list: any) =>
+          list.id === listId
+            ? {
+                ...list,
+                cards: (list.cards || []).filter((c: any) => c.id !== cardId),
+              }
+            : list
+        )
+      );
+    }
 
     try {
       await api.delete(`/boards/${id}/lists/${listId}/cards/${cardId}`);
     } catch (err) {
       console.error('Delete card error ====>', err);
     } finally {
+      fetchArchivedLists();
+      fetchBoardFull({ silent: true });
       setCardToDelete(null);
     }
   };
@@ -1690,8 +1759,9 @@ function BoardDetailPage() {
 
       {/* Lists as Trello-style columns */}
       <DndContext
-        sensors={sensors}
+        sensors={dragEnabled ? sensors : []}
         collisionDetection={closestCenter}
+        autoScroll={false}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
