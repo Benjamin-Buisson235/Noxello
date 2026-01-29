@@ -248,8 +248,33 @@ function BoardsPage() {
           <p className="boards-user">Signed in as {user.email}</p>
         </div>
         <div className="boards-toolbar">
-          <button className="button button-ghost" onClick={handleOpenInvites}>
+          <button
+            className="button button-ghost"
+            onClick={handleOpenInvites}
+            style={{
+              position: 'relative',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              paddingRight: invites.length > 0 ? 22 : undefined,
+            }}
+          >
             Invites
+            {invites.length > 0 && (
+              <span
+                aria-label="Pending invites"
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -4,
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  background: 'var(--lavender-purple)',
+                  boxShadow: '0 0 0 3px rgba(123, 44, 191, 0.35)',
+                }}
+              />
+            )}
           </button>
           <button
             className="button button-ghost"
