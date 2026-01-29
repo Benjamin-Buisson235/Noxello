@@ -81,11 +81,9 @@ function SortableCard({
   card,
   list,
   lists,
-  moveTargets,
-  currentBoardTitle,
   cardIndex,
   cardsLength,
-  handleMoveCardToList,
+  dragEnabled,
   handleReorderCard,
   handleMoveCard,
   handleDeleteCard,
@@ -94,16 +92,9 @@ function SortableCard({
   card: any;
   list: any;
   lists: any[];
-  moveTargets: any[];
-  currentBoardTitle: string;
   cardIndex: number;
   cardsLength: number;
-  handleMoveCardToList: (
-    fromListId: number,
-    card: any,
-    targetBoardId: number,
-    targetListId: number
-  ) => void;
+  dragEnabled: boolean;
   handleReorderCard: (listId: number, cardId: number, direction: 'up' | 'down') => void;
   handleMoveCard: (fromListId: number, card: any, direction: 'left' | 'right') => void;
   handleDeleteCard: (listId: number, card: any) => void;
@@ -121,17 +112,8 @@ function SortableCard({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.7 : 1,
+    opacity: isDragging ? 0.35 : 1,
   };
-  const targets = moveTargets.length
-    ? moveTargets
-    : lists.map((l: any) => ({
-        boardId: list.boardId,
-        boardTitle: currentBoardTitle,
-        listId: l.id,
-        listTitle: l.title,
-      }));
-  const selectedValue = `${list.boardId}:${list.id}`;
   const dueDateLabel = toDateInputValue(card.dueDate);
   const todayLabel = toLocalDateString(new Date());
   const isOverdue = !!dueDateLabel && dueDateLabel < todayLabel;
@@ -142,7 +124,8 @@ function SortableCard({
   return (
     <div
       ref={setNodeRef}
-      onClick={() => onOpenCardDetails(card, list.id)}
+      {...(dragEnabled ? attributes : {})}
+      {...(dragEnabled ? listeners : {})}
       style={{
         ...style,
         borderRadius: 8,
@@ -153,7 +136,7 @@ function SortableCard({
         color: '#f9f5ff',
         wordBreak: 'break-word',
         overflowWrap: 'break-word',
-        cursor: 'pointer',
+        cursor: dragEnabled ? 'grab' : 'default',
       }}
     >
       <div
@@ -163,138 +146,123 @@ function SortableCard({
           gap: 6,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span
-            {...attributes}
-            {...listeners}
-            title="Drag card"
-            style={{
-              cursor: 'grab',
-              padding: '2px 4px',
-              borderRadius: 4,
-              border: '1px solid rgba(157,78,221,0.4)',
-              fontSize: 11,
-              lineHeight: 1,
-              color: 'rgba(226,232,240,0.9)',
-              userSelect: 'none',
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            ⠿
-          </span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
           <span>{card.title}</span>
+          <button
+            type="button"
+            className="button button-ghost"
+            style={{
+              padding: '2px 6px',
+              fontSize: 10,
+              lineHeight: 1,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenCardDetails(card, list.id);
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            title="Edit card"
+          >
+            ✎
+          </button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div>
-            <select
-              value={selectedValue}
-              onChange={(e) => {
-                const [targetBoardId, targetListId] = e.target.value
-                  .split(':')
-                  .map((value) => Number(value));
-                if (Number.isNaN(targetBoardId) || Number.isNaN(targetListId)) {
-                  return;
-                }
-                handleMoveCardToList(list.id, card, targetBoardId, targetListId);
-              }}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {!dragEnabled && (
+            <>
+              <button
+                type="button"
+                className="button button-ghost"
+                style={{
+                  padding: '2px 6px',
+                  fontSize: 10,
+                  lineHeight: 1,
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleReorderCard(list.id, card.id, 'up');
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+                disabled={cardIndex === 0}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="button button-ghost"
+                style={{
+                  padding: '2px 6px',
+                  fontSize: 10,
+                  lineHeight: 1,
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleReorderCard(list.id, card.id, 'down');
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+                disabled={cardIndex === cardsLength - 1}
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                className="button button-ghost"
+                style={{
+                  padding: '2px 6px',
+                  fontSize: 10,
+                  lineHeight: 1,
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleMoveCard(list.id, card, 'left');
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                ◄
+              </button>
+              <button
+                type="button"
+                className="button button-ghost"
+                style={{
+                  padding: '2px 6px',
+                  fontSize: 10,
+                  lineHeight: 1,
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleMoveCard(list.id, card, 'right');
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                ►
+              </button>
+            </>
+          )}
+          {!dragEnabled && (
+            <button
+              type="button"
+              className="button button-ghost"
               style={{
-                borderRadius: 6,
                 padding: '2px 6px',
                 fontSize: 10,
-                border: '1px solid rgba(157,78,221,0.55)',
-                backgroundColor: 'rgba(11, 15, 35, 0.9)',
-                color: '#f9f5ff',
+                lineHeight: 1,
               }}
-              onClick={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleDeleteCard(list.id, card);
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
             >
-              {targets.map((target: any) => (
-                <option
-                  key={`${target.boardId}:${target.listId}`}
-                  value={`${target.boardId}:${target.listId}`}
-                >
-                  {target.boardTitle}: {target.listTitle}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          <button
-            type="button"
-            className="button button-ghost"
-            style={{
-              padding: '2px 6px',
-              fontSize: 10,
-              lineHeight: 1,
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleReorderCard(list.id, card.id, 'up');
-            }}
-            disabled={cardIndex === 0}
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            className="button button-ghost"
-            style={{
-              padding: '2px 6px',
-              fontSize: 10,
-              lineHeight: 1,
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleReorderCard(list.id, card.id, 'down');
-            }}
-            disabled={cardIndex === cardsLength - 1}
-          >
-            ↓
-          </button>
-          <button
-            type="button"
-            className="button button-ghost"
-            style={{
-              padding: '2px 6px',
-              fontSize: 10,
-              lineHeight: 1,
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleMoveCard(list.id, card, 'left');
-            }}
-          >
-            ◄
-          </button>
-          <button
-            type="button"
-            className="button button-ghost"
-            style={{
-              padding: '2px 6px',
-              fontSize: 10,
-              lineHeight: 1,
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleMoveCard(list.id, card, 'right');
-            }}
-          >
-            ►
-          </button>
-          <button
-            type="button"
-            className="button button-ghost"
-            style={{
-              padding: '2px 6px',
-              fontSize: 10,
-              lineHeight: 1,
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleDeleteCard(list.id, card);
-            }}
-          >
-            🗑
-          </button>
+              🗑
+            </button>
+          )}
           </div>
         </div>
         {cardLabels.length > 0 && (
@@ -359,7 +327,6 @@ function BoardDetailPage() {
   const [board, setBoard] = useState(null);
   const [lists, setLists] = useState([]);
   const [boardLabels, setBoardLabels] = useState([]);
-  const [moveTargets, setMoveTargets] = useState([]);
   const [newListTitle, setNewListTitle] = useState('');
   const [isAddingList, setIsAddingList] = useState(false);
   const [newCardTitleByList, setNewCardTitleByList] = useState<{ [key: number]: string }>({});
@@ -487,17 +454,6 @@ function BoardDetailPage() {
     }
   };
 
-  const fetchMoveTargets = async () => {
-    if (!user || !id) return;
-    try {
-      const res = await api.get(`/boards/${id}/move-targets`);
-      setMoveTargets(res.data.targets || []);
-    } catch (err) {
-      console.error('Fetch move targets error ====>', err);
-      fetchBoardFull();
-    }
-  };
-
   const fetchBoardLabels = async () => {
     if (!user || !id) return;
     try {
@@ -583,13 +539,11 @@ function BoardDetailPage() {
 
   useEffect(() => {
     fetchBoardFull();
-    fetchMoveTargets();
     fetchBoardLabels();
     fetchArchivedLists();
 
     const intervalId = window.setInterval(() => {
       fetchBoardFull({ silent: true });
-      fetchMoveTargets();
       fetchBoardLabels();
       fetchArchivedLists();
     }, 10000);
@@ -848,31 +802,7 @@ function BoardDetailPage() {
     }
   };
 
-  const handleMoveCardToList = async (
-    fromListId: number,
-    card: any,
-    targetBoardId: number,
-    targetListId: number
-  ) => {
-    const sourceBoardId = Number(id);
-    if (
-      sourceBoardId === targetBoardId &&
-      fromListId === targetListId
-    ) {
-      return;
-    }
-
-    try {
-      await api.put(
-        `/boards/${id}/lists/${fromListId}/cards/${card.id}/move-to-list`,
-        { targetBoardId, targetListId }
-      );
-      fetchBoardFull();
-    } catch (err) {
-      console.error('Move card to list error ====>', err);
-      fetchBoardFull();
-    }
-  };
+  
 
   const handleReorderCard = async (
     listId: number,
@@ -1914,11 +1844,9 @@ function BoardDetailPage() {
                         card={card}
                         list={list}
                         lists={lists}
-                        moveTargets={moveTargets}
-                        currentBoardTitle={board?.title || 'Board'}
                         cardIndex={cardIndex}
                         cardsLength={cards.length}
-                        handleMoveCardToList={handleMoveCardToList}
+                        dragEnabled={dragEnabled}
                         handleReorderCard={handleReorderCard}
                         handleMoveCard={handleMoveCard}
                         handleDeleteCard={handleDeleteCard}
