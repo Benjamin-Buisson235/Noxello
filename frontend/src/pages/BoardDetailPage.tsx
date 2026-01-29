@@ -871,7 +871,12 @@ function BoardDetailPage() {
       const overCardId = parseCardId(over.id);
       const overListId = parseListId(over.id);
 
-      const sourceList = findListByCardId(activeCardId);
+      const sourceListId =
+        activeDragListId ?? findListByCardId(activeCardId)?.id ?? null;
+      const sourceList =
+        sourceListId != null
+          ? lists.find((list: any) => list.id === sourceListId)
+          : null;
       if (!sourceList) return;
 
       const destinationList = overCardId !== null
@@ -882,7 +887,7 @@ function BoardDetailPage() {
       const sourceCards = sourceList.cards || [];
       const destinationCards = destinationList.cards || [];
       const sourceIndex = sourceCards.findIndex((c: any) => c.id === activeCardId);
-      if (sourceIndex === -1) return;
+      if (sourceIndex === -1 && sourceList.id === destinationList.id) return;
 
       if (sourceList.id === destinationList.id) {
         let destinationIndex = overCardId !== null
@@ -906,19 +911,26 @@ function BoardDetailPage() {
           });
         } catch (err) {
           console.error('Drag reorder cards error ====>', err);
-          fetchBoardFull();
+          fetchBoardFull({ silent: true });
         }
         return;
       }
 
+      const destinationCardsWithoutActive = destinationCards.filter(
+        (c: any) => c.id !== activeCardId
+      );
       let destinationIndex = overCardId !== null
-        ? destinationCards.findIndex((c: any) => c.id === overCardId)
-        : destinationCards.length;
+        ? destinationCardsWithoutActive.findIndex((c: any) => c.id === overCardId)
+        : destinationCardsWithoutActive.length;
       if (destinationIndex < 0) destinationIndex = destinationCards.length;
 
-      const movedCard = sourceCards[sourceIndex];
+      const movedCard =
+        sourceCards[sourceIndex] ??
+        destinationCards.find((c: any) => c.id === activeCardId);
+      if (!movedCard) return;
+
       const nextSourceCards = sourceCards.filter((c: any) => c.id !== activeCardId);
-      const nextDestinationCards = [...destinationCards];
+      const nextDestinationCards = [...destinationCardsWithoutActive];
       nextDestinationCards.splice(destinationIndex, 0, {
         ...movedCard,
         listId: destinationList.id,
@@ -951,7 +963,7 @@ function BoardDetailPage() {
         ]);
       } catch (err) {
         console.error('Drag move cards error ====>', err);
-        fetchBoardFull();
+        fetchBoardFull({ silent: true });
       }
     } finally {
       setActiveDragCardId(null);
