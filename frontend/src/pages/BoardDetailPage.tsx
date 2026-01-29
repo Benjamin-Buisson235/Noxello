@@ -679,7 +679,7 @@ function BoardDetailPage() {
       });
     } catch (err) {
       console.error('Reorder lists error ====>', err);
-      fetchBoardFull();
+      fetchBoardFull({ silent: true });
     }
   };
 
@@ -1215,7 +1215,7 @@ function BoardDetailPage() {
       }
       setIsDirty(false);
       setSaveStatus('saved');
-      fetchBoardFull();
+      fetchBoardFull({ silent: true });
       if (saveStatusTimeout.current) {
         window.clearTimeout(saveStatusTimeout.current);
       }
@@ -1417,7 +1417,7 @@ function BoardDetailPage() {
         `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/archive`
       );
       setCardToEdit(null);
-      fetchBoardFull();
+      fetchBoardFull({ silent: true });
       fetchArchivedLists();
     } catch (err) {
       console.error('Archive card error ====>', err);
@@ -1426,12 +1426,25 @@ function BoardDetailPage() {
 
   const handleUnarchiveCard = async () => {
     if (!cardToEdit) return;
+    const archivedCard = cardToEdit;
     try {
       await api.patch(
         `/boards/${id}/lists/${cardToEdit.listId}/cards/${cardToEdit.id}/unarchive`
       );
       setCardToEdit(null);
-      fetchBoardFull();
+      setArchivedLists((prev) =>
+        prev
+          .map((list: any) =>
+            list.id === archivedCard.listId
+              ? {
+                  ...list,
+                  cards: (list.cards || []).filter((c: any) => c.id !== archivedCard.id),
+                }
+              : list
+          )
+          .filter((list: any) => (list.cards || []).length > 0)
+      );
+      fetchBoardFull({ silent: true });
       fetchArchivedLists();
     } catch (err) {
       console.error('Unarchive card error ====>', err);
@@ -1544,6 +1557,9 @@ function BoardDetailPage() {
   const resultCount = filteredLists.reduce(
     (sum: number, list: any) => sum + (list.cards || []).length,
     0
+  );
+  const visibleArchivedLists = archivedLists.filter(
+    (list: any) => (list.cards || []).length > 0
   );
 
   if (loadingUser || loadingBoard) {
@@ -2040,8 +2056,7 @@ function BoardDetailPage() {
 
       <section className="card" style={{ marginTop: 16 }}>
         <h2 style={{ marginTop: 0, fontSize: 18 }}>Archived cards</h2>
-        {archivedLists.length === 0 ||
-        archivedLists.every((list: any) => (list.cards || []).length === 0) ? (
+        {visibleArchivedLists.length === 0 ? (
           <p className="text-muted" style={{ marginTop: 4 }}>
             No archived cards.
           </p>
@@ -2055,7 +2070,7 @@ function BoardDetailPage() {
               marginTop: 8,
             }}
           >
-            {archivedLists.map((list: any) => (
+            {visibleArchivedLists.map((list: any) => (
               <div
                 key={list.id}
                 style={{
