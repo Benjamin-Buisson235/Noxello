@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FormEvent, RefObject } from 'react';
 import ListColumn from './ListColumn';
 
 type BoardColumnsProps = {
@@ -14,14 +14,14 @@ type BoardColumnsProps = {
   handleMoveCard: (fromListId: number, card: any, direction: 'left' | 'right') => void;
   handleDeleteCard: (listId: number, card: any) => void;
   onOpenCardDetails: (card: any, listId: number) => void;
-  onAddCard: (event: React.FormEvent, listId: number) => void;
+  onAddCard: (event: FormEvent, listId: number) => void;
   onOpenAddCard: (listId: number) => void;
   onCancelAddCard: (listId: number) => void;
   onChangeCardTitle: (listId: number, value: string) => void;
-  columnsScrollRef: React.RefObject<HTMLDivElement>;
+  columnsScrollRef: RefObject<HTMLDivElement | null>;
   isAddingList: boolean;
   newListTitle: string;
-  onCreateList: (event: React.FormEvent) => void;
+  onCreateList: (event: FormEvent) => void;
   onStartAddList: () => void;
   onCancelAddList: () => void;
   onChangeNewListTitle: (value: string) => void;

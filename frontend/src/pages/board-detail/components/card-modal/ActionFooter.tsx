@@ -1,4 +1,4 @@
-import React from 'react';
+import type { CSSProperties } from 'react';
 
 type ActionFooterProps = {
   isDirty: boolean;
@@ -10,7 +10,7 @@ type ActionFooterProps = {
   onArchive: () => void;
   onUnarchive: () => void;
   onDelete: () => void;
-  dialogButtonsStyle: React.CSSProperties;
+  dialogButtonsStyle: CSSProperties;
 };
 
 function ActionFooter({

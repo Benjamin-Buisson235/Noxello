@@ -1,10 +1,10 @@
-import React from 'react';
+import type { FormEvent } from 'react';
 import { listColumnStyles } from './styles';
 
 type AddCardFormProps = {
   listId: number;
   newCardTitle: string;
-  onAddCard: (event: React.FormEvent, listId: number) => void;
+  onAddCard: (event: FormEvent, listId: number) => void;
   onCancelAddCard: (listId: number) => void;
   onChangeCardTitle: (listId: number, value: string) => void;
 };

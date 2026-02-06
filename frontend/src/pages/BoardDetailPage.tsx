@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthUser } from '../hooks/useAuthUser';
@@ -35,7 +35,6 @@ function BoardDetailPage() {
     setBoardLabels,
     setArchivedLists,
     fetchBoardFull,
-    fetchBoardLabels,
     fetchArchivedLists,
   } = useBoardData({ boardId, user });
 

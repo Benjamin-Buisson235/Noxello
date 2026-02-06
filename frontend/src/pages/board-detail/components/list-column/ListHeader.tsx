@@ -1,4 +1,4 @@
-import React from 'react';
+import type { MouseEvent } from 'react';
 import { listColumnStyles } from './styles';
 
 type ListHeaderProps = {
@@ -7,8 +7,8 @@ type ListHeaderProps = {
   listsLength: number;
   onMoveLeft: () => void;
   onMoveRight: () => void;
-  onRename: (event: React.MouseEvent) => void;
-  onDelete: (event: React.MouseEvent) => void;
+  onRename: (event: MouseEvent) => void;
+  onDelete: (event: MouseEvent) => void;
 };
 
 function ListHeader({

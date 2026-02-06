@@ -23,7 +23,7 @@ type UseCardDnDResult = {
   activeDragCard: any | null;
   dragEnabled: boolean;
   setDragEnabled: (value: boolean) => void;
-  columnsScrollRef: React.RefObject<HTMLDivElement>;
+  columnsScrollRef: React.RefObject<HTMLDivElement | null>;
   handleDragStart: (event: any) => void;
   handleDragEnd: (event: any) => Promise<void>;
   handleDragOver: (event: any) => void;

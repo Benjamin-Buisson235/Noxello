@@ -1,4 +1,4 @@
-import React from 'react';
+import type { MouseEvent } from 'react';
 import BoardCard from './BoardCard';
 
 type BoardsGridProps = {
@@ -6,8 +6,8 @@ type BoardsGridProps = {
   loading: boolean;
   userId: number;
   onOpen: (boardId: number) => void;
-  onRename: (event: React.MouseEvent, boardId: number, title: string) => void;
-  onDelete: (event: React.MouseEvent, boardId: number) => void;
+  onRename: (event: MouseEvent, boardId: number, title: string) => void;
+  onDelete: (event: MouseEvent, boardId: number) => void;
 };
 
 function BoardsGrid({ boards, loading, userId, onOpen, onRename, onDelete }: BoardsGridProps) {

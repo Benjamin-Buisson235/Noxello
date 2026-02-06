@@ -1,4 +1,3 @@
-import React from 'react';
 import { labelStyle, sectionColumnStyle, textareaStyle } from './styles';
 
 type CommentsSectionProps = {

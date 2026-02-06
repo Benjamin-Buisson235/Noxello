@@ -1,4 +1,3 @@
-import React from 'react';
 import { sortableCardStyles } from './styles';
 
 type CardHeaderProps = {

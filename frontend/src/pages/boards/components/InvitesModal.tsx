@@ -1,4 +1,4 @@
-import React from 'react';
+import type { CSSProperties } from 'react';
 
 type InvitesModalProps = {
   open: boolean;
@@ -8,9 +8,9 @@ type InvitesModalProps = {
   onAccept: (inviteId: number) => void;
   onDecline: (inviteId: number) => void;
   onClose: () => void;
-  overlayStyle: React.CSSProperties;
-  dialogStyle: React.CSSProperties;
-  dialogButtonsStyle: React.CSSProperties;
+  overlayStyle: CSSProperties;
+  dialogStyle: CSSProperties;
+  dialogButtonsStyle: CSSProperties;
 };
 
 function InvitesModal({

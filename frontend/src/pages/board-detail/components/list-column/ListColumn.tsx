@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FormEvent, MouseEvent } from 'react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { toCardDndId } from '../../utils';
 import CardsDropzone from '../CardsDropzone';
@@ -17,13 +17,13 @@ type ListColumnProps = {
   activeCardListId: number | null;
   newCardTitle: string;
   handleReorderLists: (listId: number, direction: 'left' | 'right') => void;
-  handleRenameList: (event: React.MouseEvent, listId: number, title: string) => void;
-  handleDeleteList: (event: React.MouseEvent, listId: number, title: string) => void;
+  handleRenameList: (event: MouseEvent, listId: number, title: string) => void;
+  handleDeleteList: (event: MouseEvent, listId: number, title: string) => void;
   handleReorderCard: (listId: number, cardId: number, direction: 'up' | 'down') => void;
   handleMoveCard: (fromListId: number, card: any, direction: 'left' | 'right') => void;
   handleDeleteCard: (listId: number, card: any) => void;
   onOpenCardDetails: (card: any, listId: number) => void;
-  onAddCard: (event: React.FormEvent, listId: number) => void;
+  onAddCard: (event: FormEvent, listId: number) => void;
   onOpenAddCard: (listId: number) => void;
   onCancelAddCard: (listId: number) => void;
   onChangeCardTitle: (listId: number, value: string) => void;

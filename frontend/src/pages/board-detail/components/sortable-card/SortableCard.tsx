@@ -1,4 +1,4 @@
-import React from 'react';
+import type { CSSProperties } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toCardDndId, toDateInputValue, toLocalDateString } from '../../utils';
@@ -35,7 +35,7 @@ function SortableCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: toCardDndId(card.id) });
 
-  const cardStyle: React.CSSProperties = {
+  const cardStyle: CSSProperties = {
     ...sortableCardStyles.card,
     transform: CSS.Transform.toString(transform),
     transition,

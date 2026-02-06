@@ -42,7 +42,7 @@ export const useBoardData = ({ boardId, user }: UseBoardDataParams): UseBoardDat
         const res = await api.get(`/boards/${boardId}/full`);
         setBoard(res.data.board);
         setLists(res.data.lists || []);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Fetch board full error ====>', err);
         if (!silent) {
           const status = err?.response?.status;
@@ -66,7 +66,7 @@ export const useBoardData = ({ boardId, user }: UseBoardDataParams): UseBoardDat
     try {
       const res = await api.get(`/boards/${boardId}/labels`);
       setBoardLabels(res.data.labels || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Fetch labels error ====>', err);
     }
   }, [boardId, user]);
@@ -76,7 +76,7 @@ export const useBoardData = ({ boardId, user }: UseBoardDataParams): UseBoardDat
     try {
       const res = await api.get(`/boards/${boardId}/archived`);
       setArchivedLists(res.data.lists || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Fetch archived cards error ====>', err);
       setArchivedLists([]);
     }

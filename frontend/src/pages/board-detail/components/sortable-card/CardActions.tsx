@@ -1,4 +1,4 @@
-import React from 'react';
+import type { MouseEvent } from 'react';
 import { sortableCardStyles } from './styles';
 
 type CardActionsProps = {
@@ -20,7 +20,7 @@ function CardActions({
   onMove,
   onDelete,
 }: CardActionsProps) {
-  const stop = (event: React.MouseEvent | React.PointerEvent) => event.stopPropagation();
+  const stop = (event: MouseEvent | PointerEvent) => event.stopPropagation();
 
   return (
     <div style={sortableCardStyles.actionsRow}>

@@ -40,7 +40,7 @@ export const useMembers = ({ boardId, enabled }: UseMembersParams): UseMembersRe
       setMembersError('');
       const res = await api.get(`/boards/${boardId}/members`);
       setMembers(res.data.members || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Fetch members error ====>', err);
       setMembersError('Unable to load members.');
     } finally {
@@ -79,7 +79,7 @@ export const useMembers = ({ boardId, enabled }: UseMembersParams): UseMembersRe
         setInviteStatus('success');
         setInviteMessage('Invite sent.');
         fetchMembers();
-      } catch (err) {
+      } catch (err: any) {
         console.error('Invite member error ====>', err);
         const message =
           err?.response?.data?.message || 'Unable to invite this user.';
@@ -96,7 +96,7 @@ export const useMembers = ({ boardId, enabled }: UseMembersParams): UseMembersRe
       try {
         await api.delete(`/boards/${boardId}/members/${memberUserId}`);
         fetchMembers();
-      } catch (err) {
+      } catch (err: any) {
         console.error('Remove member error ====>', err);
       }
     },

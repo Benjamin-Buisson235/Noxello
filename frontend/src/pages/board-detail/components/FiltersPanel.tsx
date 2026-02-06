@@ -1,5 +1,3 @@
-import React from 'react';
-
 type FiltersPanelProps = {
   searchQuery: string;
   onSearchChange: (value: string) => void;

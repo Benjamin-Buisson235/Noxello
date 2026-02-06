@@ -1,4 +1,4 @@
-import React from 'react';
+import type { CSSProperties } from 'react';
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -9,9 +9,9 @@ type ConfirmDialogProps = {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
-  overlayStyle: React.CSSProperties;
-  dialogStyle: React.CSSProperties;
-  dialogButtonsStyle: React.CSSProperties;
+  overlayStyle: CSSProperties;
+  dialogStyle: CSSProperties;
+  dialogButtonsStyle: CSSProperties;
 };
 
 function ConfirmDialog({

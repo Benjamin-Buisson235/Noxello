@@ -1,5 +1,3 @@
-import React from 'react';
-
 type BoardHeaderProps = {
   board: any;
   onBack: () => void;

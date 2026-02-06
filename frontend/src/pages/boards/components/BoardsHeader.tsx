@@ -1,5 +1,3 @@
-import React from 'react';
-
 type BoardsHeaderProps = {
   userEmail: string;
   invitesCount: number;

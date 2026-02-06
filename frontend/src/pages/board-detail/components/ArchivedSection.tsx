@@ -1,5 +1,3 @@
-import React from 'react';
-
 type ArchivedSectionProps = {
   lists: any[];
   onOpenCardDetails: (card: any, listId: number) => void;

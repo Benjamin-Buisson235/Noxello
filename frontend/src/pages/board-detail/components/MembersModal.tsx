@@ -1,4 +1,4 @@
-import React from 'react';
+import type { CSSProperties, FormEvent } from 'react';
 
 type MembersModalProps = {
   open: boolean;
@@ -10,12 +10,12 @@ type MembersModalProps = {
   inviteMessage: string;
   inviteStatus: 'idle' | 'success' | 'error';
   onInviteEmailChange: (value: string) => void;
-  onInviteSubmit: (event: React.FormEvent) => void;
+  onInviteSubmit: (event: FormEvent) => void;
   onRemoveMember: (userId: number) => void;
   onClose: () => void;
-  overlayStyle: React.CSSProperties;
-  dialogStyle: React.CSSProperties;
-  dialogButtonsStyle: React.CSSProperties;
+  overlayStyle: CSSProperties;
+  dialogStyle: CSSProperties;
+  dialogButtonsStyle: CSSProperties;
 };
 
 function MembersModal({

@@ -1,4 +1,3 @@
-import React from 'react';
 import { toDateInputValue } from '../utils';
 
 type DragPreviewProps = {

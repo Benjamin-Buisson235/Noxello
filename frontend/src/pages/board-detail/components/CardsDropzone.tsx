@@ -1,10 +1,10 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { toListDndId } from '../utils';
 
 type CardsDropzoneProps = {
   listId: number;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 function CardsDropzone({ listId, children }: CardsDropzoneProps) {

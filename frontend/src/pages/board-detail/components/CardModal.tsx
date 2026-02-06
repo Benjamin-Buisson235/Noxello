@@ -1,4 +1,4 @@
-import React from 'react';
+import type { CSSProperties } from 'react';
 import DetailsSection from './card-modal/DetailsSection';
 import LabelsSection from './card-modal/LabelsSection';
 import ChecklistSection from './card-modal/ChecklistSection';
@@ -23,9 +23,9 @@ type CardModalProps = {
   isDirty: boolean;
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   saveError: string;
-  overlayStyle: React.CSSProperties;
-  dialogStyle: React.CSSProperties;
-  dialogButtonsStyle: React.CSSProperties;
+  overlayStyle: CSSProperties;
+  dialogStyle: CSSProperties;
+  dialogButtonsStyle: CSSProperties;
   onOverlayClick: () => void;
   onCancel: () => void;
   onSave: () => void;

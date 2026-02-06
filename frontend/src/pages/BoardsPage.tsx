@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { overlayStyle, dialogStyle, dialogButtonsStyle } from '../components/modalStyles';

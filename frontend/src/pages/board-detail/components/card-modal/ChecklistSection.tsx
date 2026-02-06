@@ -1,4 +1,3 @@
-import React from 'react';
 import { inputStyle, labelStyle, rowStyle, sectionColumnStyle } from './styles';
 
 type ChecklistSectionProps = {

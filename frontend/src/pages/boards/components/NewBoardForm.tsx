@@ -1,10 +1,10 @@
-import React from 'react';
+import type { FormEvent } from 'react';
 
 type NewBoardFormProps = {
   newTitle: string;
   error: string | null;
   onChangeTitle: (value: string) => void;
-  onSubmit: (event: React.FormEvent) => void;
+  onSubmit: (event: FormEvent) => void;
 };
 
 function NewBoardForm({ newTitle, error, onChangeTitle, onSubmit }: NewBoardFormProps) {
