@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -6,7 +5,7 @@ import api from '../api';
 function SettingsPage() {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,9 +30,9 @@ function SettingsPage() {
         setUser(u);
         setName(u.name || '');
         localStorage.setItem('user', JSON.stringify(u));
-      } catch (err) {
+      } catch (err: any) {
         console.error('Fetch /auth/me error ====>', err);
-        setError("Unable to load profile.");
+        setError('Unable to load profile.');
         if (err?.response?.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -61,7 +60,7 @@ function SettingsPage() {
       setMessage('Profile updated.');
     } catch (err) {
       console.error('Update /auth/me error ====>', err);
-      setError("Unable to update profile.");
+      setError('Unable to update profile.');
     } finally {
       setSaving(false);
     }
@@ -96,9 +95,7 @@ function SettingsPage() {
       <header className="boards-header">
         <div>
           <h1 className="boards-title">Account settings</h1>
-          <p className="boards-user">
-            Signed in as {user.email}
-          </p>
+          <p className="boards-user">Signed in as {user.email}</p>
         </div>
         <div className="boards-toolbar">
           <button className="button button-ghost" onClick={handleBack}>
@@ -181,11 +178,7 @@ function SettingsPage() {
           Choose how you move cards in boards.
         </p>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-          <input
-            type="checkbox"
-            checked={dragEnabled}
-            onChange={handleToggleDrag}
-          />
+          <input type="checkbox" checked={dragEnabled} onChange={handleToggleDrag} />
           Enable drag & drop for cards
         </label>
       </section>

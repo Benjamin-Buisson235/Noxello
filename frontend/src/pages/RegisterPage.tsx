@@ -1,21 +1,20 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     try {
-      const res = await api.post('/auth/register', { email, password, name });
+      const res = await api.post('/auth/register', { name, email, password });
       const { token, user } = res.data;
 
       localStorage.setItem('token', token);
@@ -25,9 +24,7 @@ const RegisterPage = () => {
     } catch (err: any) {
       console.error('Register error ===>', err);
       const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Account creation failed';
+        err?.response?.data?.message || err?.message || 'Registration failed';
       setError(msg);
     }
   };
@@ -36,17 +33,16 @@ const RegisterPage = () => {
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="app-title">Noxello</h1>
-        <p className="app-subtitle">
-          Create an account to start organizing your projects.
-        </p>
+        <p className="app-subtitle">Create an account to start building boards.</p>
 
         <form className="form" onSubmit={handleSubmit}>
           <input
             className="input"
             type="text"
-            placeholder="Name (optional)"
+            placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            required
           />
           <input
             className="input"

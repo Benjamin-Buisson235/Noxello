@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
@@ -7,7 +6,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,9 +23,7 @@ const LoginPage = () => {
     } catch (err: any) {
       console.error('Login error ===>', err);
       const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Login failed';
+        err?.response?.data?.message || err?.message || 'Login failed';
       setError(msg);
     }
   };
@@ -35,9 +32,7 @@ const LoginPage = () => {
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="app-title">Noxello</h1>
-        <p className="app-subtitle">
-          Sign in to access your boards.
-        </p>
+        <p className="app-subtitle">Sign in to access your boards.</p>
 
         <form className="form" onSubmit={handleSubmit}>
           <input
@@ -65,8 +60,7 @@ const LoginPage = () => {
         </form>
 
         <p style={{ marginTop: 12 }} className="text-muted">
-          Don't have an account?{' '}
-          <Link to="/register">Create an account</Link>
+          Don't have an account? <Link to="/register">Create an account</Link>
         </p>
       </div>
     </div>
