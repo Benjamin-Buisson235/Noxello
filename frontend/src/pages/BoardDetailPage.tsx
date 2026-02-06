@@ -188,12 +188,6 @@ function BoardDetailPage() {
     navigate('/boards');
   };
 
-  const handleToggleDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const enabled = event.target.checked;
-    setDragEnabled(enabled);
-    localStorage.setItem('dragEnabled', enabled ? 'true' : 'false');
-  };
-
   const isOwner = !!board && !!user && board.ownerId === user.id;
 
   if (loadingUser || loadingBoard) {
@@ -226,14 +220,6 @@ function BoardDetailPage() {
         onMembers={openMembers}
         onLogout={handleLogout}
       />
-
-      <section className="card" style={{ marginBottom: 16 }}>
-        <h2 style={{ marginTop: 0, fontSize: 18 }}>Card movement</h2>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-          <input type="checkbox" checked={dragEnabled} onChange={handleToggleDrag} />
-          Enable drag & drop for cards
-        </label>
-      </section>
 
       <FiltersPanel
         searchQuery={searchQuery}
