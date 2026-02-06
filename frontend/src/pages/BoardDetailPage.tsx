@@ -21,7 +21,7 @@ import { useCardModal } from './board-detail/hooks/useCardModal';
 
 function BoardDetailPage() {
   const navigate = useNavigate();
-  const { boardId } = useParams();
+  const { id: boardId } = useParams();
   const { user, loadingUser } = useAuthUser(navigate);
 
   const {
