@@ -84,7 +84,6 @@ function BoardDetailPage() {
     collisionDetection,
     activeDragCard,
     dragEnabled,
-    setDragEnabled,
     columnsScrollRef,
     handleDragStart,
     handleDragOver,
