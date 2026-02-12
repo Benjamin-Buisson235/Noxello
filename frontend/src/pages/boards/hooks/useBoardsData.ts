@@ -15,9 +15,14 @@ type UseBoardsDataResult = {
   loadingBoards: boolean;
   loadingInvites: boolean;
   boardToDelete: number | null;
+  boardToRename: { id: number; title: string } | null;
+  renameValue: string;
   setNewTitle: (value: string) => void;
+  setRenameValue: (value: string) => void;
   handleCreateBoard: (event: FormEvent) => Promise<void>;
-  handleRenameBoard: (event: MouseEvent, id: number, title: string) => Promise<void>;
+  handleRenameBoard: (event: MouseEvent, id: number, title: string) => void;
+  confirmRenameBoard: () => Promise<void>;
+  cancelRenameBoard: () => void;
   handleDeleteBoard: (event: MouseEvent, id: number) => void;
   confirmDeleteBoard: () => Promise<void>;
   cancelDeleteBoard: () => void;
@@ -34,6 +39,10 @@ export const useBoardsData = ({ user }: UseBoardsDataParams): UseBoardsDataResul
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [invitesError, setInvitesError] = useState('');
   const [boardToDelete, setBoardToDelete] = useState<number | null>(null);
+  const [boardToRename, setBoardToRename] = useState<
+    { id: number; title: string } | null
+  >(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const fetchBoards = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -114,29 +123,42 @@ export const useBoardsData = ({ user }: UseBoardsDataParams): UseBoardsDataResul
   );
 
   const handleRenameBoard = useCallback(
-    async (event: MouseEvent, id: number, currentTitle: string) => {
+    (event: MouseEvent, id: number, currentTitle: string) => {
       event.stopPropagation();
-
-      const newTitle = window.prompt('New board title', currentTitle);
-      if (!newTitle || newTitle.trim() === '' || newTitle.trim() === currentTitle) {
-        return;
-      }
-
-      try {
-        const res = await api.put(`/boards/${id}`, { title: newTitle.trim() });
-        const updated = res.data.board;
-        setBoards((prev) =>
-          prev.map((board: any) =>
-            board.id === id ? { ...board, title: updated.title } : board
-          )
-        );
-      } catch (err) {
-        console.error('Rename board error ====>', err);
-        setError('Unable to rename board.');
-      }
+      setBoardToRename({ id, title: currentTitle });
+      setRenameValue(currentTitle);
     },
     []
   );
+
+  const confirmRenameBoard = useCallback(async () => {
+    if (!boardToRename) return;
+    const newTitle = renameValue.trim();
+    if (!newTitle || newTitle === boardToRename.title) {
+      setBoardToRename(null);
+      return;
+    }
+
+    try {
+      const res = await api.put(`/boards/${boardToRename.id}`, { title: newTitle });
+      const updated = res.data.board;
+      setBoards((prev) =>
+        prev.map((board: any) =>
+          board.id === boardToRename.id ? { ...board, title: updated.title } : board
+        )
+      );
+    } catch (err) {
+      console.error('Rename board error ====>', err);
+      setError('Unable to rename board.');
+    } finally {
+      setBoardToRename(null);
+    }
+  }, [boardToRename, renameValue]);
+
+  const cancelRenameBoard = useCallback(() => {
+    setBoardToRename(null);
+    setRenameValue('');
+  }, []);
 
   const handleDeleteBoard = useCallback((event: MouseEvent, id: number) => {
     event.stopPropagation();
@@ -191,9 +213,14 @@ export const useBoardsData = ({ user }: UseBoardsDataParams): UseBoardsDataResul
     loadingBoards,
     loadingInvites,
     boardToDelete,
+    boardToRename,
+    renameValue,
     setNewTitle,
+    setRenameValue,
     handleCreateBoard,
     handleRenameBoard,
+    confirmRenameBoard,
+    cancelRenameBoard,
     handleDeleteBoard,
     confirmDeleteBoard,
     cancelDeleteBoard,

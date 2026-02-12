@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { overlayStyle, dialogStyle, dialogButtonsStyle } from '../components/modalStyles';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PromptDialog from '../components/PromptDialog';
 import { useBoardsData } from './boards/hooks/useBoardsData';
 import BoardsHeader from './boards/components/BoardsHeader';
 import NewBoardForm from './boards/components/NewBoardForm';
@@ -21,9 +22,14 @@ function BoardsPage() {
     loadingBoards,
     loadingInvites,
     boardToDelete,
+    boardToRename,
+    renameValue,
     setNewTitle,
+    setRenameValue,
     handleCreateBoard,
     handleRenameBoard,
+    confirmRenameBoard,
+    cancelRenameBoard,
     handleDeleteBoard,
     confirmDeleteBoard,
     cancelDeleteBoard,
@@ -89,6 +95,21 @@ function BoardsPage() {
         onAccept={handleAcceptInvite}
         onDecline={handleDeclineInvite}
         onClose={() => setShowInvitesModal(false)}
+        overlayStyle={overlayStyle}
+        dialogStyle={dialogStyle}
+        dialogButtonsStyle={dialogButtonsStyle}
+      />
+
+      <PromptDialog
+        open={!!boardToRename}
+        title="Rename board"
+        description={`Rename board \"${boardToRename?.title || ''}\"`}
+        value={renameValue}
+        placeholder="Board title"
+        confirmLabel="Save"
+        onChange={setRenameValue}
+        onConfirm={confirmRenameBoard}
+        onCancel={cancelRenameBoard}
         overlayStyle={overlayStyle}
         dialogStyle={dialogStyle}
         dialogButtonsStyle={dialogButtonsStyle}

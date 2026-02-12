@@ -12,11 +12,16 @@ type UseListActionsParams = {
 type UseListActionsResult = {
   newListTitle: string;
   isAddingList: boolean;
+  listToRename: { id: number; title: string } | null;
+  renameValue: string;
   listToDelete: { id: number; title: string } | null;
   setNewListTitle: (value: string) => void;
   setIsAddingList: (value: boolean) => void;
+  setRenameValue: (value: string) => void;
   handleCreateList: (event: FormEvent) => Promise<void>;
-  handleRenameList: (event: MouseEvent, listId: number, title: string) => Promise<void>;
+  handleRenameList: (event: MouseEvent, listId: number, title: string) => void;
+  confirmRenameList: () => Promise<void>;
+  cancelRenameList: () => void;
   handleReorderLists: (listId: number, direction: 'left' | 'right') => Promise<void>;
   handleDeleteList: (event: MouseEvent, listId: number, title: string) => void;
   confirmDeleteList: () => Promise<void>;
@@ -31,6 +36,10 @@ export const useListActions = ({
 }: UseListActionsParams): UseListActionsResult => {
   const [newListTitle, setNewListTitle] = useState('');
   const [isAddingList, setIsAddingList] = useState(false);
+  const [listToRename, setListToRename] = useState<
+    { id: number; title: string } | null
+  >(null);
+  const [renameValue, setRenameValue] = useState('');
   const [listToDelete, setListToDelete] = useState<
     { id: number; title: string } | null
   >(null);
@@ -56,31 +65,43 @@ export const useListActions = ({
   );
 
   const handleRenameList = useCallback(
-    async (event: MouseEvent, listId: number, currentTitle: string) => {
+    (event: MouseEvent, listId: number, currentTitle: string) => {
       event.preventDefault();
-
-      const newTitle = window.prompt('New column title', currentTitle);
-      if (!newTitle || newTitle.trim() === '' || newTitle.trim() === currentTitle) {
-        return;
-      }
-      if (!boardId) return;
-
-      try {
-        const res = await api.put(`/boards/${boardId}/lists/${listId}`, {
-          title: newTitle.trim(),
-        });
-        const updated = res.data.list;
-        setLists((prev) =>
-          prev.map((list: any) =>
-            list.id === listId ? { ...list, title: updated.title } : list
-          )
-        );
-      } catch (err) {
-        console.error('Rename list error ====>', err);
-      }
+      setListToRename({ id: listId, title: currentTitle });
+      setRenameValue(currentTitle);
     },
-    [boardId, setLists]
+    []
   );
+
+  const confirmRenameList = useCallback(async () => {
+    if (!boardId || !listToRename) return;
+    const newTitle = renameValue.trim();
+    if (!newTitle || newTitle === listToRename.title) {
+      setListToRename(null);
+      return;
+    }
+
+    try {
+      const res = await api.put(`/boards/${boardId}/lists/${listToRename.id}`, {
+        title: newTitle,
+      });
+      const updated = res.data.list;
+      setLists((prev) =>
+        prev.map((list: any) =>
+          list.id === listToRename.id ? { ...list, title: updated.title } : list
+        )
+      );
+    } catch (err) {
+      console.error('Rename list error ====>', err);
+    } finally {
+      setListToRename(null);
+    }
+  }, [boardId, listToRename, renameValue, setLists]);
+
+  const cancelRenameList = useCallback(() => {
+    setListToRename(null);
+    setRenameValue('');
+  }, []);
 
   const handleReorderLists = useCallback(
     async (listId: number, direction: 'left' | 'right') => {
@@ -137,11 +158,16 @@ export const useListActions = ({
   return {
     newListTitle,
     isAddingList,
+    listToRename,
+    renameValue,
     listToDelete,
     setNewListTitle,
     setIsAddingList,
+    setRenameValue,
     handleCreateList,
     handleRenameList,
+    confirmRenameList,
+    cancelRenameList,
     handleReorderLists,
     handleDeleteList,
     confirmDeleteList,
