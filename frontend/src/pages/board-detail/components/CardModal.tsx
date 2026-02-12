@@ -157,7 +157,6 @@ function CardModal({
             <LabelsSection
               boardLabels={boardLabels}
               selectedLabelIds={selectedLabelIds}
-              onToggleLabel={onToggleLabel}
               onOpenManager={() => setShowLabelManager(true)}
             />
             <ChecklistSection

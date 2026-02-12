@@ -4,16 +4,10 @@ import { labelStyle, sectionColumnStyle } from './styles';
 type LabelsSectionProps = {
   boardLabels: any[];
   selectedLabelIds: number[];
-  onToggleLabel: (labelId: number) => void;
   onOpenManager: () => void;
 };
 
-function LabelsSection({
-  boardLabels,
-  selectedLabelIds,
-  onToggleLabel,
-  onOpenManager,
-}: LabelsSectionProps) {
+function LabelsSection({ boardLabels, selectedLabelIds, onOpenManager }: LabelsSectionProps) {
   const selectedLabels = boardLabels.filter((label: any) =>
     selectedLabelIds.includes(label.id)
   );
