@@ -40,6 +40,7 @@ type UseCardModalResult = {
   saveError: string;
   checklistDoneCount: number;
   checklistTotalCount: number;
+  showDiscardConfirm: boolean;
   setEditCardTitle: (value: string) => void;
   setEditCardDescription: (value: string) => void;
   setEditCardDueDate: (value: string) => void;
@@ -50,9 +51,12 @@ type UseCardModalResult = {
   openCardDetails: (card: any, listId: number) => void;
   saveCardDetails: (forcedDueDate?: string | null) => Promise<void>;
   cancelCardDetails: () => void;
+  confirmDiscardChanges: () => void;
+  cancelDiscardChanges: () => void;
   clearDueDate: () => Promise<void>;
   toggleLabel: (labelId: number) => void;
   createLabel: () => Promise<void>;
+  deleteLabel: (labelId: number) => Promise<void>;
   addChecklistItem: () => Promise<void>;
   toggleChecklistItem: (itemId: number, done: boolean) => Promise<void>;
   checklistTextChange: (itemId: number, text: string) => void;
@@ -91,6 +95,7 @@ export const useCardModal = ({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [saveError, setSaveError] = useState('');
   const saveStatusTimeout = useRef<number | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const fetchChecklistItems = async (cardId: number, listId: number) => {
     if (!boardId) return;
@@ -142,6 +147,7 @@ export const useCardModal = ({
     setIsDirty(false);
     setSaveStatus('idle');
     setSaveError('');
+    setShowDiscardConfirm(false);
   };
 
   const saveCardDetails = async (forcedDueDate?: string | null) => {
@@ -214,16 +220,34 @@ export const useCardModal = ({
     }
   };
 
-  const cancelCardDetails = () => {
-    if (isDirty) {
-      const confirmClose = window.confirm('Discard unsaved changes?');
-      if (!confirmClose) return;
-    }
+  const closeCardModal = () => {
     setCardToEdit(null);
     setChecklistItems([]);
     setNewChecklistText('');
     setComments([]);
     setNewCommentContent('');
+    setShowDiscardConfirm(false);
+  };
+
+  const requestClose = () => {
+    if (!cardToEdit) return;
+    if (isDirty) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    closeCardModal();
+  };
+
+  const confirmDiscardChanges = () => {
+    closeCardModal();
+  };
+
+  const cancelDiscardChanges = () => {
+    setShowDiscardConfirm(false);
+  };
+
+  const cancelCardDetails = () => {
+    requestClose();
   };
 
   const clearDueDate = async () => {
@@ -256,6 +280,18 @@ export const useCardModal = ({
       setNewLabelColor('');
     } catch (err) {
       console.error('Create label error ====>', err);
+    }
+  };
+
+  const deleteLabel = async (labelId: number) => {
+    if (!boardId) return;
+    try {
+      await api.delete(`/boards/${boardId}/labels/${labelId}`);
+      setBoardLabels((prev) => prev.filter((label: any) => label.id !== labelId));
+      setSelectedLabelIds((prev) => prev.filter((id) => id !== labelId));
+      setInitialLabelIds((prev) => prev.filter((id) => id !== labelId));
+    } catch (err) {
+      console.error('Delete label error ====>', err);
     }
   };
 
@@ -447,7 +483,7 @@ export const useCardModal = ({
   };
 
   const overlayClick = () => {
-    cancelCardDetails();
+    requestClose();
   };
 
   useEffect(() => {
@@ -508,6 +544,7 @@ export const useCardModal = ({
     saveError,
     checklistDoneCount,
     checklistTotalCount,
+    showDiscardConfirm,
     setEditCardTitle,
     setEditCardDescription,
     setEditCardDueDate,
@@ -518,9 +555,12 @@ export const useCardModal = ({
     openCardDetails,
     saveCardDetails,
     cancelCardDetails,
+    confirmDiscardChanges,
+    cancelDiscardChanges,
     clearDueDate,
     toggleLabel,
     createLabel,
+    deleteLabel,
     addChecklistItem,
     toggleChecklistItem,
     checklistTextChange,

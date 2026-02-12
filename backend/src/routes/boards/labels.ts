@@ -55,4 +55,38 @@ export const registerLabelRoutes = (router: Router) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
   });
+
+  router.delete('/:boardId/labels/:labelId', async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = Number(req.params.boardId);
+      const labelId = Number(req.params.labelId);
+
+      if (Number.isNaN(boardId) || Number.isNaN(labelId)) {
+        return res.status(400).json({ message: 'Invalid board or label id' });
+      }
+
+      const board = await getAccessibleBoard(boardId, userId);
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      const label = await prisma.label.findFirst({
+        where: { id: labelId, boardId },
+      });
+      if (!label) {
+        return res.status(404).json({ message: 'Label not found' });
+      }
+
+      await prisma.$transaction([
+        prisma.cardLabel.deleteMany({ where: { labelId } }),
+        prisma.label.delete({ where: { id: labelId } }),
+      ]);
+
+      return res.status(204).send();
+    } catch (err) {
+      console.error('Delete label error ====>', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 };

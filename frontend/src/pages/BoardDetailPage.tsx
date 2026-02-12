@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { overlayStyle, dialogStyle, dialogButtonsStyle } from '../components/modalStyles';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PromptDialog from '../components/PromptDialog';
 import BoardHeader from './board-detail/components/BoardHeader';
 import FiltersPanel from './board-detail/components/FiltersPanel';
 import BoardColumns from './board-detail/components/BoardColumns';
@@ -41,11 +42,16 @@ function BoardDetailPage() {
   const {
     newListTitle,
     isAddingList,
+    listToRename,
+    renameValue,
     listToDelete,
     setNewListTitle,
     setIsAddingList,
+    setRenameValue,
     handleCreateList,
     handleRenameList,
+    confirmRenameList,
+    cancelRenameList,
     handleReorderLists,
     handleDeleteList,
     confirmDeleteList,
@@ -128,6 +134,7 @@ function BoardDetailPage() {
     saveError,
     checklistDoneCount,
     checklistTotalCount,
+    showDiscardConfirm,
     setEditCardTitle,
     setEditCardDescription,
     setEditCardDueDate,
@@ -138,9 +145,12 @@ function BoardDetailPage() {
     openCardDetails,
     saveCardDetails,
     cancelCardDetails,
+    confirmDiscardChanges,
+    cancelDiscardChanges,
     clearDueDate,
     toggleLabel,
     createLabel,
+    deleteLabel,
     addChecklistItem,
     toggleChecklistItem,
     checklistTextChange,
@@ -335,6 +345,7 @@ function BoardDetailPage() {
         onCreateLabel={createLabel}
         onChangeNewLabelName={setNewLabelName}
         onChangeNewLabelColor={setNewLabelColor}
+        onDeleteLabel={deleteLabel}
         onToggleChecklistItem={toggleChecklistItem}
         onChecklistTextChange={checklistTextChange}
         onSaveChecklistText={saveChecklistText}
@@ -346,6 +357,33 @@ function BoardDetailPage() {
         onChangeNewCommentContent={setNewCommentContent}
         onDeleteComment={deleteComment}
         currentUserId={user?.id}
+      />
+
+      <ConfirmDialog
+        open={showDiscardConfirm}
+        title="Discard changes"
+        description="Discard unsaved changes to this card?"
+        confirmLabel="Discard"
+        onConfirm={confirmDiscardChanges}
+        onCancel={cancelDiscardChanges}
+        overlayStyle={overlayStyle}
+        dialogStyle={dialogStyle}
+        dialogButtonsStyle={dialogButtonsStyle}
+      />
+
+      <PromptDialog
+        open={!!listToRename}
+        title="Rename list"
+        description={`Rename list \"${listToRename?.title || ''}\"`}
+        value={renameValue}
+        placeholder="List title"
+        confirmLabel="Save"
+        onChange={setRenameValue}
+        onConfirm={confirmRenameList}
+        onCancel={cancelRenameList}
+        overlayStyle={overlayStyle}
+        dialogStyle={dialogStyle}
+        dialogButtonsStyle={dialogButtonsStyle}
       />
 
       <ConfirmDialog

@@ -33,3 +33,27 @@ export const sameLabelIds = (a: number[], b: number[]) => {
   const sortedB = [...b].sort((x, y) => x - y);
   return sortedA.every((value, index) => value === sortedB[index]);
 };
+
+const normalizeHex = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('#')) return null;
+  if (trimmed.length === 4) {
+    const r = trimmed[1];
+    const g = trimmed[2];
+    const b = trimmed[3];
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  if (trimmed.length === 7) return trimmed;
+  return null;
+};
+
+export const getLabelTextColor = (color?: string | null) => {
+  if (!color) return '#f9f5ff';
+  const hex = normalizeHex(color);
+  if (!hex) return '#f9f5ff';
+  const r = Number.parseInt(hex.slice(1, 3), 16);
+  const g = Number.parseInt(hex.slice(3, 5), 16);
+  const b = Number.parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#0b0b0b' : '#f9f5ff';
+};
