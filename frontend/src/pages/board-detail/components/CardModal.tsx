@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import DetailsSection from './card-modal/DetailsSection';
 import LabelsSection from './card-modal/LabelsSection';
 import ChecklistSection from './card-modal/ChecklistSection';
 import CommentsSection from './card-modal/CommentsSection';
 import ActionFooter from './card-modal/ActionFooter';
+import LabelManagerModal from './card-modal/LabelManagerModal';
 
 type CardModalProps = {
   card: any | null;
@@ -40,6 +42,7 @@ type CardModalProps = {
   onCreateLabel: () => void;
   onChangeNewLabelName: (value: string) => void;
   onChangeNewLabelColor: (value: string) => void;
+  onDeleteLabel: (labelId: number) => void;
   onToggleChecklistItem: (itemId: number, done: boolean) => void;
   onChecklistTextChange: (itemId: number, text: string) => void;
   onSaveChecklistText: (itemId: number, text: string) => void;
@@ -88,6 +91,7 @@ function CardModal({
   onCreateLabel,
   onChangeNewLabelName,
   onChangeNewLabelColor,
+  onDeleteLabel,
   onToggleChecklistItem,
   onChecklistTextChange,
   onSaveChecklistText,
@@ -100,53 +104,86 @@ function CardModal({
   onDeleteComment,
   currentUserId,
 }: CardModalProps) {
+  const [showLabelManager, setShowLabelManager] = useState(false);
+
   if (!card) return null;
+
+  const cardDialogStyle: CSSProperties = {
+    ...dialogStyle,
+    width: 'min(92vw, 980px)',
+    maxWidth: 980,
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+  };
+
+  const bodyStyle: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 320px)',
+    gap: 16,
+    overflowY: 'auto',
+    paddingRight: 6,
+  };
+
+  const leftColumnStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    minWidth: 0,
+  };
+
+  const rightColumnStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    minWidth: 0,
+  };
 
   return (
     <div style={overlayStyle} onClick={onOverlayClick}>
-      <div style={dialogStyle} onClick={(event) => event.stopPropagation()}>
-        <h3 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>Card details</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <DetailsSection
-            editCardTitle={editCardTitle}
-            editCardDescription={editCardDescription}
-            editCardDueDate={editCardDueDate}
-            onChangeTitle={onChangeTitle}
-            onChangeDescription={onChangeDescription}
-            onChangeDueDate={onChangeDueDate}
-            onClearDueDate={onClearDueDate}
-          />
-          <LabelsSection
-            boardLabels={boardLabels}
-            selectedLabelIds={selectedLabelIds}
-            newLabelName={newLabelName}
-            newLabelColor={newLabelColor}
-            onToggleLabel={onToggleLabel}
-            onCreateLabel={onCreateLabel}
-            onChangeNewLabelName={onChangeNewLabelName}
-            onChangeNewLabelColor={onChangeNewLabelColor}
-          />
-          <ChecklistSection
-            checklistItems={checklistItems}
-            checklistDoneCount={checklistDoneCount}
-            checklistTotalCount={checklistTotalCount}
-            newChecklistText={newChecklistText}
-            onToggleChecklistItem={onToggleChecklistItem}
-            onChecklistTextChange={onChecklistTextChange}
-            onSaveChecklistText={onSaveChecklistText}
-            onReorderChecklistItem={onReorderChecklistItem}
-            onDeleteChecklistItem={onDeleteChecklistItem}
-            onAddChecklistItem={onAddChecklistItem}
-            onChangeNewChecklistText={onChangeNewChecklistText}
-          />
-          <CommentsSection
-            comments={comments}
-            newCommentContent={newCommentContent}
-            currentUserId={currentUserId}
-            onChangeNewCommentContent={onChangeNewCommentContent}
-            onAddComment={onAddComment}
-            onDeleteComment={onDeleteComment}
-          />
+      <div style={cardDialogStyle} onClick={(event) => event.stopPropagation()}>
+        <h3 style={{ margin: 0, marginBottom: 12, fontSize: 20 }}>Card details</h3>
+        <div style={bodyStyle}>
+          <div style={leftColumnStyle}>
+            <DetailsSection
+              editCardTitle={editCardTitle}
+              editCardDescription={editCardDescription}
+              editCardDueDate={editCardDueDate}
+              onChangeTitle={onChangeTitle}
+              onChangeDescription={onChangeDescription}
+              onChangeDueDate={onChangeDueDate}
+              onClearDueDate={onClearDueDate}
+            />
+            <LabelsSection
+              boardLabels={boardLabels}
+              selectedLabelIds={selectedLabelIds}
+              onToggleLabel={onToggleLabel}
+              onOpenManager={() => setShowLabelManager(true)}
+            />
+            <ChecklistSection
+              checklistItems={checklistItems}
+              checklistDoneCount={checklistDoneCount}
+              checklistTotalCount={checklistTotalCount}
+              newChecklistText={newChecklistText}
+              onToggleChecklistItem={onToggleChecklistItem}
+              onChecklistTextChange={onChecklistTextChange}
+              onSaveChecklistText={onSaveChecklistText}
+              onReorderChecklistItem={onReorderChecklistItem}
+              onDeleteChecklistItem={onDeleteChecklistItem}
+              onAddChecklistItem={onAddChecklistItem}
+              onChangeNewChecklistText={onChangeNewChecklistText}
+            />
+          </div>
+          <div style={rightColumnStyle}>
+            <CommentsSection
+              comments={comments}
+              newCommentContent={newCommentContent}
+              currentUserId={currentUserId}
+              onChangeNewCommentContent={onChangeNewCommentContent}
+              onAddComment={onAddComment}
+              onDeleteComment={onDeleteComment}
+            />
+          </div>
         </div>
         <ActionFooter
           isDirty={isDirty}
@@ -161,6 +198,23 @@ function CardModal({
           dialogButtonsStyle={dialogButtonsStyle}
         />
       </div>
+
+      <LabelManagerModal
+        open={showLabelManager}
+        boardLabels={boardLabels}
+        selectedLabelIds={selectedLabelIds}
+        newLabelName={newLabelName}
+        newLabelColor={newLabelColor}
+        onToggleLabel={onToggleLabel}
+        onCreateLabel={onCreateLabel}
+        onDeleteLabel={onDeleteLabel}
+        onChangeNewLabelName={onChangeNewLabelName}
+        onChangeNewLabelColor={onChangeNewLabelColor}
+        onClose={() => setShowLabelManager(false)}
+        overlayStyle={overlayStyle}
+        dialogStyle={dialogStyle}
+        dialogButtonsStyle={dialogButtonsStyle}
+      />
     </div>
   );
 }

@@ -33,7 +33,7 @@ function ChecklistSection({
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          gap: 8,
         }}
       >
         <label style={labelStyle}>Checklist</label>

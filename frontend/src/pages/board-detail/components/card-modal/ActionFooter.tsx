@@ -25,36 +25,48 @@ function ActionFooter({
   onDelete,
   dialogButtonsStyle,
 }: ActionFooterProps) {
+  let statusText = '';
+  let statusColor = 'rgba(226,232,240,0.9)';
+
+  if (isDirty) {
+    statusText = 'Unsaved changes';
+  } else if (saveStatus === 'saved') {
+    statusText = 'Saved ✓';
+    statusColor = 'rgba(125, 247, 200, 0.95)';
+  } else if (saveStatus === 'saving') {
+    statusText = 'Saving…';
+  } else if (saveStatus === 'error') {
+    statusText = saveError || 'Unable to save';
+    statusColor = 'rgba(248, 113, 113, 0.95)';
+  }
+
   return (
     <>
-      <div style={{ marginTop: 10, fontSize: 12 }}>
-        {isDirty && (
-          <span style={{ color: 'rgba(226,232,240,0.9)' }}>Unsaved changes</span>
-        )}
-        {!isDirty && saveStatus === 'saved' && (
-          <span style={{ color: 'rgba(125, 247, 200, 0.95)' }}>Saved ✓</span>
-        )}
-        {saveStatus === 'saving' && (
-          <span style={{ color: 'rgba(226,232,240,0.9)' }}>Saving…</span>
-        )}
-        {saveStatus === 'error' && (
-          <span style={{ color: 'rgba(248, 113, 113, 0.95)' }}>
-            {saveError || 'Unable to save'}
-          </span>
-        )}
-      </div>
-      <div style={dialogButtonsStyle}>
-        <button className="button button-ghost" type="button" onClick={onCancel}>
-          Cancel
-        </button>
-        <button
-          className="button button-primary"
-          type="button"
-          onClick={onSave}
-          disabled={saveStatus === 'saving'}
-        >
-          Save
-        </button>
+      <div
+        style={{
+          marginTop: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <span style={{ fontSize: 12, color: statusColor, minHeight: 16 }}>
+          {statusText || ' '}
+        </span>
+        <div style={{ ...dialogButtonsStyle, marginTop: 0 }}>
+          <button className="button button-ghost" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            className="button button-primary"
+            type="button"
+            onClick={onSave}
+            disabled={saveStatus === 'saving'}
+          >
+            Save
+          </button>
+        </div>
       </div>
       <div
         style={{

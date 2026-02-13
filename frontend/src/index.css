@@ -259,6 +259,35 @@ a:hover {
   filter: brightness(1.02);
 }
 
+.card-item {
+  position: relative;
+  z-index: 1;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    border-color 0.12s ease;
+}
+
+.card-item:hover {
+  z-index: 10;
+  transform: translateY(-1px) scale(1.01);
+  outline: 2px solid rgba(199, 125, 255, 0.6);
+  outline-offset: 0;
+}
+
+.card-item--dragging {
+  z-index: 12;
+  outline: 2px solid rgba(199, 125, 255, 0.75);
+  outline-offset: 0;
+}
+
+.card-item--preview {
+  z-index: 99999;
+  transform: scale(1.02);
+  outline: 2px solid rgba(199, 125, 255, 0.75);
+  outline-offset: 0;
+}
+
 .board-title {
   margin: 0 0 4px;
   font-size: 15px;

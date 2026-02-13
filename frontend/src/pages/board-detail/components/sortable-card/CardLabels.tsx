@@ -1,3 +1,4 @@
+import { getLabelTextColor } from '../../utils';
 import { sortableCardStyles } from './styles';
 
 type CardLabelsProps = {
@@ -15,6 +16,7 @@ function CardLabels({ labels }: CardLabelsProps) {
           style={{
             ...sortableCardStyles.labelPill,
             backgroundColor: label.color || 'rgba(157,78,221,0.25)',
+            color: getLabelTextColor(label.color),
           }}
         >
           {label.name}

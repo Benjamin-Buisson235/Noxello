@@ -15,15 +15,19 @@ function CardsDropzone({ listId, children }: CardsDropzoneProps) {
       ref={setNodeRef}
       data-list-scroll="true"
       style={{
-        marginTop: 10,
+        marginTop: 2,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
         flex: 1,
         minHeight: 0,
+        marginLeft: -12,
+        marginRight: -12,
+        paddingTop: 8,
+        paddingLeft: 12,
+        paddingRight: 12,
         overflowY: 'auto',
-        overflowX: 'hidden',
-        paddingRight: 4,
+        overflowX: 'visible',
         outline: 'none',
         borderRadius: 8,
       }}

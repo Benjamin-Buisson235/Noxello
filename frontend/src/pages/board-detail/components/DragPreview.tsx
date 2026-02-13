@@ -9,6 +9,7 @@ function DragPreview({ card }: DragPreviewProps) {
 
   return (
     <div
+      className="card-item card-item--preview"
       style={{
         borderRadius: 10,
         padding: '8px 10px',

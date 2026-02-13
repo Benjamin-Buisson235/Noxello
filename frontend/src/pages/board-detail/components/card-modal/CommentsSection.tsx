@@ -20,6 +20,24 @@ function CommentsSection({
   return (
     <div style={sectionColumnStyle}>
       <label style={labelStyle}>Comments</label>
+      <textarea
+        value={newCommentContent}
+        onChange={(event) => onChangeNewCommentContent(event.target.value)}
+        rows={3}
+        placeholder="Write a comment"
+        style={textareaStyle}
+        onKeyDown={(event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+            event.preventDefault();
+            onAddComment();
+          }
+        }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" className="button button-ghost" onClick={onAddComment}>
+          Add comment
+        </button>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {comments.length === 0 && (
           <span style={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
@@ -73,24 +91,6 @@ function CommentsSection({
             </div>
           );
         })}
-      </div>
-      <textarea
-        value={newCommentContent}
-        onChange={(event) => onChangeNewCommentContent(event.target.value)}
-        rows={3}
-        placeholder="Write a comment"
-        style={textareaStyle}
-        onKeyDown={(event) => {
-          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-            event.preventDefault();
-            onAddComment();
-          }
-        }}
-      />
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" className="button button-ghost" onClick={onAddComment}>
-          Add comment
-        </button>
       </div>
     </div>
   );

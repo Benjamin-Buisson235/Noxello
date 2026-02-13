@@ -40,7 +40,7 @@ function SortableCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.35 : 1,
-    cursor: dragEnabled ? 'grab' : 'default',
+    cursor: dragEnabled ? 'pointer' : 'default',
   };
 
   const dueDateLabel = toDateInputValue(card.dueDate);
@@ -55,12 +55,19 @@ function SortableCard({
       ref={setNodeRef}
       {...(dragEnabled ? attributes : {})}
       {...(dragEnabled ? listeners : {})}
+      className={`card-item${isDragging ? ' card-item--dragging' : ''}`}
       style={cardStyle}
+      onClick={() => {
+        if (dragEnabled) {
+          onOpenCardDetails(card, list.id);
+        }
+      }}
     >
       <div style={sortableCardStyles.content}>
         <CardHeader
           title={card.title}
           onEdit={() => onOpenCardDetails(card, list.id)}
+          showEditButton={!dragEnabled}
         />
         <div style={sortableCardStyles.content}>
           {!dragEnabled && (
