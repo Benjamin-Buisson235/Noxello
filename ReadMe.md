@@ -1,5 +1,5 @@
 # Noxello
-**by Benjamin "Nox" B.**
+by Benjamin "Nox" B.
 
 **Live:** https://noxello.nox-news.com
 
