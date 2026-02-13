@@ -1,310 +1,201 @@
 # Noxello
+**by Benjamin "Nox" B.**
 
-Noxello is a simplified version of Trello, built solo by me, Benjamin B, for an Epitech project.  
-The goal: organize work as **boards**, **columns** (lists) and **cards**, with a clean split between frontend and backend.
+**Live:** https://noxello.nox-news.com
 
----
+Noxello is a Trello-inspired project management app built as a full-stack solo project. It focuses on clear structure, fast workflows, and a clean UX for boards, lists, and cards.
 
-## Project Goal
+**Overview**
+- Create boards, lists, and cards
+- Drag and drop cards across lists
+- Rich card details (description, due date, labels, checklist, comments)
+- Archive and restore cards
+- Board collaboration with invites and members
+- JWT authentication
 
-Recreate the core principles of Trello:
+**Tech Stack**
+- Backend: Node.js, TypeScript, Express, Prisma, PostgreSQL
+- Frontend: React, TypeScript, Vite, React Router
+- Auth: JWT (Bearer token)
 
-- Manage **project boards**
-- Organize boards into **columns** (lists)
-- Add **cards** inside columns
-- Move cards between columns
-- Secure everything with **user authentication**
-- Modern front + back architecture
-- Drag & drop for cards between columns
+**Key Features**
+- Authentication: register, login, profile update
+- Boards: create, rename, delete, shared access
+- Lists: create, rename, delete, reorder
+- Cards: create, edit, delete, reorder, drag and drop
+- Card details: description, due date (custom picker), labels, checklist, comments
+- Labels: create, assign, delete
+- Archive: archive/unarchive cards, dedicated archived section
+- Search and filters: title/description, due date, labels
+- Invites: invite members, accept/decline, remove members
 
----
+**API Endpoints (core)**
+Auth
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+- `PUT /auth/me`
 
-## Architecture Overview
+Boards
+- `GET /boards`
+- `POST /boards`
+- `GET /boards/:id`
+- `GET /boards/:id/full`
+- `PUT /boards/:id`
+- `DELETE /boards/:id`
 
-The project is split into two parts:
+Lists
+- `GET /boards/:id/lists`
+- `POST /boards/:id/lists`
+- `PATCH /boards/:id/lists/reorder`
+- `PUT /boards/:boardId/lists/:listId`
+- `DELETE /boards/:boardId/lists/:listId`
 
-- `backend/`: REST API (auth + boards + lists + cards)
-- `frontend/`: React application (UI, navigation, API calls)
+Cards
+- `GET /boards/:boardId/lists/:listId/cards`
+- `POST /boards/:boardId/lists/:listId/cards`
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId`
+- `PATCH /boards/:boardId/lists/:listId/cards/reorder`
+- `PUT /boards/:boardId/lists/:listId/cards/:cardId/move`
+- `PUT /boards/:boardId/lists/:listId/cards/:cardId/move-to-list`
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/archive`
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/unarchive`
+- `DELETE /boards/:boardId/lists/:listId/cards/:cardId`
 
-### Backend
+Labels
+- `GET /boards/:boardId/labels`
+- `POST /boards/:boardId/labels`
+- `PUT /boards/:boardId/lists/:listId/cards/:cardId/labels`
+- `DELETE /boards/:boardId/labels/:labelId`
 
-Technologies:
+Checklists
+- `GET /boards/:boardId/lists/:listId/cards/:cardId/checklist`
+- `POST /boards/:boardId/lists/:listId/cards/:cardId/checklist`
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/checklist/:itemId`
+- `DELETE /boards/:boardId/lists/:listId/cards/:cardId/checklist/:itemId`
+- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/checklist/reorder`
 
-- **Node.js**, **TypeScript**
-- **Express** (REST routes)
-- **Prisma** (ORM)
-- **PostgreSQL** (via `DATABASE_URL`)
-- **JWT** for authentication
+Comments
+- `GET /boards/:boardId/lists/:listId/cards/:cardId/comments`
+- `POST /boards/:boardId/lists/:listId/cards/:cardId/comments`
+- `DELETE /boards/:boardId/lists/:listId/cards/:cardId/comments/:commentId`
 
-Key models:
+Members + Invites
+- `GET /boards/:id/members`
+- `POST /boards/:id/invite`
+- `DELETE /boards/:id/members/:userId`
+- `GET /boards/:id/invites`
+- `POST /boards/:id/invites/accept`
+- `POST /boards/:id/invites/decline`
 
-- `User`  
-  `id`, `email`, `passwordHash`, `name`, `createdAt`  
-  → owns many `Board`
-- `Board`  
-  `id`, `title`, `position`, `createdAt`, `ownerId`
-- `List` (column)  
-  `id`, `title`, `position`, `boardId`
-- `Card`  
-  `id`, `title`, `description`, `dueDate`, `archived`, `position`, `listId`
-- `Label`  
-  `id`, `name`, `color`, `boardId`
-- `ChecklistItem`  
-  `id`, `text`, `done`, `position`, `cardId`
-- `Comment`  
-  `id`, `content`, `authorId`, `cardId`, `createdAt`
+**Repository Structure**
+```text
+backend/
+  prisma/
+    schema.prisma
+  src/
+    index.ts
+    prisma.ts
+    authMiddleware.ts
+    authRoutes.ts
+    boardRoutes.ts
+    routes/
+      boards/
+        boards.ts
+        lists.ts
+        cards.ts
+        checklists.ts
+        comments.ts
+        labels.ts
+        members.ts
+        invites.ts
+        archive.ts
+        utils.ts
+frontend/
+  src/
+    api.ts
+    main.tsx
+    index.css
+    components/
+      ConfirmDialog.tsx
+      PromptDialog.tsx
+    hooks/
+      useAuthUser.ts
+    pages/
+      LoginPage.tsx
+      RegisterPage.tsx
+      BoardsPage.tsx
+      BoardDetailPage.tsx
+      SettingsPage.tsx
+      boards/
+        components/
+        hooks/
+      board-detail/
+        components/
+        hooks/
+        utils.ts
+```
 
-Main routes:
-
-**Auth**
-
-- `POST /auth/register` – create an account
-- `POST /auth/login` – log in
-- `GET /auth/me` – return current user
-- `PUT /auth/me` – update profile (name)
-
-**Boards**
-
-- `GET /boards` – list boards for the logged-in user
-- `POST /boards` – create a new board
-- `GET /boards/:id` – get a single board
-- `GET /boards/:id/full` – get a board with its lists + cards (ordered by position)
-- `PUT /boards/:id` – rename a board
-- `DELETE /boards/:id` – delete a board
-
-**Lists (columns)**
-
-- `GET /boards/:id/lists` – list columns of a board
-- `POST /boards/:id/lists` – create a column in a board
-- `PATCH /boards/:id/lists/reorder` – reorder columns in a board
-- `PUT /boards/:boardId/lists/:listId` – rename a column
-- `DELETE /boards/:boardId/lists/:listId` – delete a column
-
-**Cards**
-
-- `GET /boards/:boardId/lists/:listId/cards` – list cards in a column
-- `POST /boards/:boardId/lists/:listId/cards` – create a card
-- `PATCH /boards/:boardId/lists/:listId/cards/:cardId` – update card details (title/description/dueDate)
-- `PATCH /boards/:boardId/lists/:listId/cards/reorder` – reorder cards in a column
-- `PUT /boards/:boardId/lists/:listId/cards/:cardId/move` – move a card to another column
-- `PUT /boards/:boardId/lists/:listId/cards/:cardId/move-to-list` – move a card to another board/list
-- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/archive` – archive a card
-- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/unarchive` – unarchive a card
-- `DELETE /boards/:boardId/lists/:listId/cards/:cardId` – delete a card
-- `GET /boards/:boardId/labels` – list labels for a board
-- `POST /boards/:boardId/labels` – create a label
-- `PUT /boards/:boardId/lists/:listId/cards/:cardId/labels` – set labels on a card
-- `GET /boards/:boardId/lists/:listId/cards/:cardId/checklist` – list checklist items
-- `POST /boards/:boardId/lists/:listId/cards/:cardId/checklist` – add checklist item
-- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/checklist/:itemId` – update checklist item
-- `DELETE /boards/:boardId/lists/:listId/cards/:cardId/checklist/:itemId` – delete checklist item
-- `PATCH /boards/:boardId/lists/:listId/cards/:cardId/checklist/reorder` – reorder checklist items
-- `GET /boards/:boardId/lists/:listId/cards/:cardId/comments` – list comments
-- `POST /boards/:boardId/lists/:listId/cards/:cardId/comments` – add comment
-- `DELETE /boards/:boardId/lists/:listId/cards/:cardId/comments/:commentId` – delete comment
-
-All board/list/card routes are protected by a `requireAuth` middleware that checks the JWT sent in `Authorization: Bearer <token>`.
-
----
-
-### Frontend
-
-Technologies:
-
-- **React** + **TypeScript**
-- **Vite**
-- **Axios** (API calls)
-- **React Router** (routing)
-
-Pages:
-
-- `/login` – sign in
-- `/register` – create an account
-- `/boards` – list and manage boards
-- `/boards/:id` – board detail (columns + cards)
-- `/settings` – account settings (profile information coming from `/auth/me`)
-
-The JWT token is stored in `localStorage` after login/register and automatically injected into API calls via an Axios instance (`api.ts`) that sets the `Authorization` header.
-
----
-
-## Current Features
-
-### Authentication
-
-- Account creation (`/register`) with:
-  - email
-  - password (hashed on the backend)
-  - name (optional)
-- Login (`/login`)
-- JWT generated on sign up / sign in
-- Token stored on the frontend and sent automatically to the API
-- Automatic redirection to `/login` if the user is not authenticated
-- `/settings` page:
-  - fetches the current user (`/auth/me`)
-  - allows updating the profile name
-
-### Boards
-
-- Create a board with a title from `/boards`
-- List boards belonging to the logged-in user
-- Each board is displayed as a card with:
-  - title
-  - position
-  - creation date
-  - **Rename** and **Delete** actions
-- Navigate to a board detail page `/boards/:id`
-
-### Columns (Lists)
-
-On the board detail page:
-
-- Create new columns with a title
-- Columns are ordered by `position`
-- Each column card shows:
-  - title
-  - position
-  - creation date
-  - **Rename** and **Delete** actions
-- Deleting a column is confirmed with a custom in-app modal (not the browser alert)
-
-### Cards
-
-Inside each column:
-
-- Add cards using a “+ Add a card” area
-  - pressing **Enter** creates the card
-- Cards are displayed as small blocks inside the column
-- Each card has:
-  - its title
-  - a **Move left** / **Move right** button to send it to the previous/next column
-  - a **Move to list** dropdown to send it to any board/list you own
-  - **Move up** / **Move down** buttons to reorder within a column
-  - a **Delete** button
-- Deleting a card also uses a custom confirmation modal
-- Drag & drop is enabled for cards within a column and across columns
-- Cards can be edited in a modal:
-  - title + description
-  - due date with overdue indicator
-  - labels
-  - checklist with progress
-  - comments with author and timestamp
-- Cards can be archived and are shown in a dedicated archived section
-- Search and filters:
-  - search by title or description
-  - filter by overdue and due soon
-  - filter by labels
-
-Column and card reordering are supported via explicit reorder endpoints.
-
-### Interface / UX
-
-- Custom **dark violet** theme with gradients
-- Centered forms, rounded cards, consistent spacing
-- Board view and board detail view styled with the same visual identity
-- Custom confirmation modals for destructive actions:
-  - delete board
-  - delete column
-  - delete card
-
----
-
-## Roadmap (next steps)
-
-Possible future improvements to get closer to full Trello:
-
-1. **Drag & drop**
-   - Drag & drop to reorder columns inside a board
-
-2. **Board collaboration**
-   - Invite other users to a board
-   - Basic permissions (owner / member)
-
-3. **Quality of life**
-   - Global loading & error handling
-   - Better responsive design (mobile view)
-
----
-
-## Run the project locally
-
-### 1. Backend
-
+**Local Development**
+1. Backend
 ```bash
 cd backend
+cp .env.example .env
 npm install
 npx prisma migrate dev
 npm run dev
 ```
 
-- The backend runs on `http://localhost:4000`
-- For Postgres, set `DATABASE_URL` to your connection string (see `backend/.env.example`)
-- The `.env` file should contain at least:
-
-```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require"
-JWT_SECRET="change-me-to-a-longer-secret"
-PORT=4000
-```
-
-- For production deployments, use:
-
-```bash
-npx prisma migrate deploy
-```
-
-- On Render, set the Pre-Deploy Command to:
-
-```bash
-npx prisma migrate deploy
-```
-
-### 2. Frontend
-
+2. Frontend
 ```bash
 cd frontend
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-- The frontend runs on `http://localhost:5173`
-- Axios configuration uses `VITE_API_URL` when defined, otherwise defaults to `http://localhost:4000`
-  - See `frontend/.env.example` for the expected env var name
-
-### Deployment (Managed)
-
-- On Vercel, set `VITE_API_URL` to your backend URL (e.g. `https://api.example.com`)
-- Vite environment variables must be prefixed with `VITE_`
-
----
-
-## Repository Structure (simplified)
-
-```text
-backend/
-  src/
-    index.ts           Express entrypoint, routes mounted ```
-    authRoutes.ts      /auth (register, login, /me)
-    boardRoutes.ts     /boards + lists + cards (CRUD + move)
-    authMiddleware.ts  requireAuth (JWT)
-    prisma.ts          Prisma client
-  prisma/
-    schema.prisma      User, Board, List, Card models
-  .env                 Local environment variables (not committed)
-  package.json
-
-frontend/
-  src/
-    main.tsx           Main router
-    api.ts             Axios instance + JWT injection
-    pages/
-      LoginPage.tsx
-      RegisterPage.tsx
-      BoardsPage.tsx       Boards dashboard
-      BoardDetailPage.tsx  Columns + cards + move/delete
-      SettingsPage.tsx     User profile (/auth/me)
-    index.css          Global styles, dark violet theme
-    App.css            Layout & common components styling
-  public/              Vite static assets (favicon, etc.)
-  package.json
+**Environment Variables**
+Backend (`backend/.env`)
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require"
+JWT_SECRET="change-me"
+PORT=4000
+FRONTEND_ORIGIN="http://localhost:5173"
 ```
+
+Frontend (`frontend/.env`)
+```env
+VITE_API_URL=http://localhost:4000
+```
+
+**Production Deployment**
+Backend (Render)
+- Build: `npm run build`
+- Start: `npm run start`
+- Migrations: `npx prisma migrate deploy`
+
+Frontend (Vercel)
+- Set `VITE_API_URL` to your backend URL
+- Vite env vars must be prefixed with `VITE_`
+
+**Scripts**
+Backend
+```bash
+npm run dev
+npm run build
+npm run start
+npm run prisma:generate
+npm run prisma:migrate:deploy
+```
+
+Frontend
+```bash
+npm run dev
+npm run build
+npm run preview
+```
+
+**Notes**
+- API uses `Authorization: Bearer <token>` for protected routes.
+- Drag-and-drop is powered by `@dnd-kit`.
+- UI uses custom modal components for confirmations and prompts.
