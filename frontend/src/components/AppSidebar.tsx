@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 type AppSidebarProps = {
   boards: any[];
   activeBoardId?: number | null;
+  activeSection?: 'home' | 'board' | 'settings';
   userName?: string | null;
   userEmail?: string | null;
   onHome: () => void;
@@ -17,6 +18,7 @@ type AppSidebarProps = {
 function AppSidebar({
   boards,
   activeBoardId,
+  activeSection,
   userName,
   userEmail,
   onHome,
@@ -28,6 +30,8 @@ function AppSidebar({
   topContent,
 }: AppSidebarProps) {
   const displayName = userName?.trim() || userEmail || 'Unknown user';
+  const resolvedSection =
+    activeSection || (activeBoardId != null ? 'board' : 'home');
 
   return (
     <aside className="app-sidebar">
@@ -39,7 +43,7 @@ function AppSidebar({
         </div>
         <button
           type="button"
-          className={`sidebar-item${activeBoardId == null ? ' active' : ''}`}
+          className={`sidebar-item${resolvedSection === 'home' ? ' active' : ''}`}
           onClick={onHome}
         >
           Home
@@ -63,7 +67,9 @@ function AppSidebar({
               <button
                 key={board.id}
                 type="button"
-                className={`sidebar-item${activeBoardId === board.id ? ' active' : ''}`}
+                className={`sidebar-item${
+                  resolvedSection === 'board' && activeBoardId === board.id ? ' active' : ''
+                }`}
                 onClick={() => onSelectBoard(board.id)}
                 title={board.title}
               >
@@ -75,7 +81,11 @@ function AppSidebar({
       </div>
 
       <div className="sidebar-bottom">
-        <button type="button" className="sidebar-item" onClick={onOpenSettings}>
+        <button
+          type="button"
+          className={`sidebar-item${resolvedSection === 'settings' ? ' active' : ''}`}
+          onClick={onOpenSettings}
+        >
           Settings
         </button>
         <button type="button" className="sidebar-item" onClick={onLogout}>

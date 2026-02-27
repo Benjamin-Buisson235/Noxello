@@ -277,14 +277,15 @@ function BoardDetailPage() {
   if (error) {
     return (
       <div className="app-shell">
-        <AppSidebar
-          boards={navBoards}
-          activeBoardId={board?.id ?? null}
-          userName={user?.name}
-          userEmail={user?.email}
-          onHome={handleBack}
-          onSelectBoard={(id) => navigate(`/boards/${id}`)}
-          onOpenSettings={handleOpenSettings}
+      <AppSidebar
+        boards={navBoards}
+        activeBoardId={board?.id ?? null}
+        activeSection="board"
+        userName={user?.name}
+        userEmail={user?.email}
+        onHome={handleBack}
+        onSelectBoard={(id) => navigate(`/boards/${id}`)}
+        onOpenSettings={handleOpenSettings}
           onLogout={handleLogout}
           onOpenInvites={() => setShowInvitesModal(true)}
           invitesCount={invites.length}
@@ -326,6 +327,7 @@ function BoardDetailPage() {
       <AppSidebar
         boards={navBoards}
         activeBoardId={board.id}
+        activeSection="board"
         userName={user?.name}
         userEmail={user?.email}
         onHome={handleBack}

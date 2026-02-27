@@ -75,6 +75,7 @@ function BoardsPage() {
       <AppSidebar
         boards={boards}
         activeBoardId={null}
+        activeSection="home"
         userName={user.name}
         userEmail={user.email}
         onHome={() => navigate('/boards')}
