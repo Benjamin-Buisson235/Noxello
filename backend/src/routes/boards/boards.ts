@@ -198,6 +198,7 @@ export const registerBoardRoutes = (router: Router) => {
       }
 
       await prisma.$transaction([
+        prisma.label.deleteMany({ where: { boardId: board.id } }),
         prisma.list.deleteMany({ where: { boardId: board.id } }),
         prisma.board.delete({ where: { id: board.id } }),
       ]);
