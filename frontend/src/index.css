@@ -227,7 +227,7 @@ a:hover {
 .sidebar-bottom {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sidebar-brand {
@@ -257,7 +257,7 @@ a:hover {
 .sidebar-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   min-height: 0;
   margin-top: 6px;
@@ -275,36 +275,49 @@ a:hover {
 .sidebar-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .sidebar-item {
   text-align: left;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid transparent;
-  padding: 8px 10px;
-  background: rgba(18, 12, 42, 0.6);
-  color: #f4f2ff;
+  padding: 6px 8px 6px 12px;
+  background: transparent;
+  color: rgba(235, 234, 255, 0.92);
   font-size: 13px;
   cursor: pointer;
-  transition: border-color 0.12s ease, background-color 0.12s ease, transform 0.08s ease;
+  transition: color 0.12s ease, background-color 0.12s ease;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  position: relative;
 }
 
 .sidebar-item:hover {
-  border-color: rgba(199, 125, 255, 0.55);
-  background: rgba(36, 15, 68, 0.7);
-  transform: translateY(-1px);
+  color: #ffffff;
+  background: rgba(55, 22, 96, 0.4);
 }
 
 .sidebar-item.active {
-  border-color: rgba(199, 125, 255, 0.85);
-  background: rgba(68, 31, 128, 0.6);
+  color: #ffffff;
+  background: rgba(68, 31, 128, 0.35);
+  border-color: rgba(199, 125, 255, 0.25);
+}
+
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 999px;
+  background: rgba(199, 125, 255, 0.95);
+  box-shadow: 0 0 10px rgba(199, 125, 255, 0.6);
 }
 
 .sidebar-item-title {
