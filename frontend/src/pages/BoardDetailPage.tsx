@@ -76,8 +76,6 @@ function BoardDetailPage() {
     handleChangeCardTitle,
     handleAddCard,
     handleCancelAddCard,
-    handleMoveCard,
-    handleReorderCard,
     handleDeleteCard,
     confirmDeleteCard,
     cancelDeleteCard,
@@ -94,7 +92,6 @@ function BoardDetailPage() {
     sensors,
     collisionDetection,
     activeDragCard,
-    dragEnabled,
     columnsScrollRef,
     handleDragStart,
     handleDragOver,
@@ -362,7 +359,7 @@ function BoardDetailPage() {
           />
 
           <DndContext
-            sensors={dragEnabled ? sensors : []}
+            sensors={sensors}
             collisionDetection={collisionDetection}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
@@ -372,15 +369,11 @@ function BoardDetailPage() {
             <BoardColumns
               filteredLists={filteredLists}
               lists={lists}
-              dragEnabled={dragEnabled}
               activeCardListId={activeCardListId}
               newCardTitleByList={newCardTitleByList}
               handleReorderLists={handleReorderLists}
               handleRenameList={handleRenameList}
               handleDeleteList={handleDeleteList}
-              handleReorderCard={handleReorderCard}
-              handleMoveCard={handleMoveCard}
-              handleDeleteCard={handleDeleteCard}
               onOpenCardDetails={openCardDetails}
               onAddCard={handleAddCard}
               onOpenAddCard={handleOpenAddCard}

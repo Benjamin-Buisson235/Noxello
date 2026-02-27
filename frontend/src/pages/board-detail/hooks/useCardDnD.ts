@@ -21,8 +21,6 @@ type UseCardDnDResult = {
   sensors: ReturnType<typeof useSensors>;
   collisionDetection: typeof closestCenter;
   activeDragCard: any | null;
-  dragEnabled: boolean;
-  setDragEnabled: (value: boolean) => void;
   columnsScrollRef: React.RefObject<HTMLDivElement | null>;
   handleDragStart: (event: any) => void;
   handleDragEnd: (event: any) => Promise<void>;
@@ -38,9 +36,6 @@ export const useCardDnD = ({
 }: UseCardDnDParams): UseCardDnDResult => {
   const [activeDragCardId, setActiveDragCardId] = useState<number | null>(null);
   const [activeDragListId, setActiveDragListId] = useState<number | null>(null);
-  const [dragEnabled, setDragEnabled] = useState(() => {
-    return localStorage.getItem('dragEnabled') !== 'false';
-  });
   const columnsScrollRef = useRef<HTMLDivElement | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -60,7 +55,6 @@ export const useCardDnD = ({
     cards.map((card: any, index: number) => ({ ...card, position: index }));
 
   const handleDragStart = (event: any) => {
-    if (!dragEnabled) return;
     const activeCardId = parseCardId(event.active.id);
     if (activeCardId === null) return;
     setActiveDragCardId(activeCardId);
@@ -69,7 +63,6 @@ export const useCardDnD = ({
   };
 
   const handleDragEnd = async (event: any) => {
-    if (!dragEnabled) return;
     try {
       if (!boardId) return;
       const { active, over } = event;
@@ -188,7 +181,6 @@ export const useCardDnD = ({
   };
 
   const handleDragOver = (event: any) => {
-    if (!dragEnabled) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -248,7 +240,7 @@ export const useCardDnD = ({
   };
 
   useEffect(() => {
-    if (activeDragCardId == null || !dragEnabled) return;
+    if (activeDragCardId == null) return;
     const container = columnsScrollRef.current;
     if (!container) return;
 
@@ -275,23 +267,12 @@ export const useCardDnD = ({
 
     window.addEventListener('pointermove', handlePointerMove);
     return () => window.removeEventListener('pointermove', handlePointerMove);
-  }, [activeDragCardId, dragEnabled]);
-
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== 'dragEnabled') return;
-      setDragEnabled(event.newValue !== 'false');
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  }, [activeDragCardId]);
 
   return {
     sensors,
     collisionDetection: closestCenter,
     activeDragCard,
-    dragEnabled,
-    setDragEnabled,
     columnsScrollRef,
     handleDragStart,
     handleDragEnd,

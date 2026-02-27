@@ -13,15 +13,11 @@ type ListColumnProps = {
   list: any;
   listIndex: number;
   lists: any[];
-  dragEnabled: boolean;
   activeCardListId: number | null;
   newCardTitle: string;
   handleReorderLists: (listId: number, direction: 'left' | 'right') => void;
   handleRenameList: (event: MouseEvent, listId: number, title: string) => void;
   handleDeleteList: (event: MouseEvent, listId: number, title: string) => void;
-  handleReorderCard: (listId: number, cardId: number, direction: 'up' | 'down') => void;
-  handleMoveCard: (fromListId: number, card: any, direction: 'left' | 'right') => void;
-  handleDeleteCard: (listId: number, card: any) => void;
   onOpenCardDetails: (card: any, listId: number) => void;
   onAddCard: (event: FormEvent, listId: number) => void;
   onOpenAddCard: (listId: number) => void;
@@ -33,15 +29,11 @@ function ListColumn({
   list,
   listIndex,
   lists,
-  dragEnabled,
   activeCardListId,
   newCardTitle,
   handleReorderLists,
   handleRenameList,
   handleDeleteList,
-  handleReorderCard,
-  handleMoveCard,
-  handleDeleteCard,
   onOpenCardDetails,
   onAddCard,
   onOpenAddCard,
@@ -69,17 +61,11 @@ function ListColumn({
         strategy={verticalListSortingStrategy}
       >
         <CardsDropzone listId={list.id}>
-          {cards.map((card: any, cardIndex: number) => (
+          {cards.map((card: any) => (
             <SortableCard
               key={card.id}
               card={card}
               list={list}
-              cardIndex={cardIndex}
-              cardsLength={cards.length}
-              dragEnabled={dragEnabled}
-              handleReorderCard={handleReorderCard}
-              handleMoveCard={handleMoveCard}
-              handleDeleteCard={handleDeleteCard}
               onOpenCardDetails={onOpenCardDetails}
             />
           ))}

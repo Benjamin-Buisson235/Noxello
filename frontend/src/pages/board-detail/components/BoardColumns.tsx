@@ -4,15 +4,11 @@ import ListColumn from './ListColumn';
 type BoardColumnsProps = {
   filteredLists: any[];
   lists: any[];
-  dragEnabled: boolean;
   activeCardListId: number | null;
   newCardTitleByList: Record<number, string>;
   handleReorderLists: (listId: number, direction: 'left' | 'right') => void;
   handleRenameList: (event: React.MouseEvent, listId: number, title: string) => void;
   handleDeleteList: (event: React.MouseEvent, listId: number, title: string) => void;
-  handleReorderCard: (listId: number, cardId: number, direction: 'up' | 'down') => void;
-  handleMoveCard: (fromListId: number, card: any, direction: 'left' | 'right') => void;
-  handleDeleteCard: (listId: number, card: any) => void;
   onOpenCardDetails: (card: any, listId: number) => void;
   onAddCard: (event: FormEvent, listId: number) => void;
   onOpenAddCard: (listId: number) => void;
@@ -30,15 +26,11 @@ type BoardColumnsProps = {
 function BoardColumns({
   filteredLists,
   lists,
-  dragEnabled,
   activeCardListId,
   newCardTitleByList,
   handleReorderLists,
   handleRenameList,
   handleDeleteList,
-  handleReorderCard,
-  handleMoveCard,
-  handleDeleteCard,
   onOpenCardDetails,
   onAddCard,
   onOpenAddCard,
@@ -77,15 +69,11 @@ function BoardColumns({
             list={list}
             listIndex={listIndex}
             lists={lists}
-            dragEnabled={dragEnabled}
             activeCardListId={activeCardListId}
             newCardTitle={newCardTitleByList[list.id] || ''}
             handleReorderLists={handleReorderLists}
             handleRenameList={handleRenameList}
             handleDeleteList={handleDeleteList}
-            handleReorderCard={handleReorderCard}
-            handleMoveCard={handleMoveCard}
-            handleDeleteCard={handleDeleteCard}
             onOpenCardDetails={onOpenCardDetails}
             onAddCard={onAddCard}
             onOpenAddCard={onOpenAddCard}
