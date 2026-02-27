@@ -9,7 +9,7 @@ function BoardHeader({ board, onMembers }: BoardHeaderProps) {
       <div>
         <h1 className="boards-title">{board.title}</h1>
         <p className="boards-user">
-          Board #{board.id} — created on{' '}
+          Created on{' '}
           {new Date(board.createdAt).toLocaleString('en-US', {
             dateStyle: 'short',
             timeStyle: 'short',
