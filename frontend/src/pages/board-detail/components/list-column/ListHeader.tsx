@@ -3,10 +3,6 @@ import { listColumnStyles } from './styles';
 
 type ListHeaderProps = {
   title: string;
-  listIndex: number;
-  listsLength: number;
-  onMoveLeft: () => void;
-  onMoveRight: () => void;
   onRename: (event: MouseEvent) => void;
   onDelete: (event: MouseEvent) => void;
   dragAttributes?: Record<string, unknown>;
@@ -15,10 +11,6 @@ type ListHeaderProps = {
 
 function ListHeader({
   title,
-  listIndex,
-  listsLength,
-  onMoveLeft,
-  onMoveRight,
   onRename,
   onDelete,
   dragAttributes,
@@ -34,24 +26,6 @@ function ListHeader({
         {title}
       </h3>
       <div style={listColumnStyles.actionsRow}>
-        <div style={listColumnStyles.actionsGroup}>
-          <button
-            className="button button-ghost"
-            style={listColumnStyles.actionButton}
-            onClick={onMoveLeft}
-            disabled={listIndex === 0}
-          >
-            ←
-          </button>
-          <button
-            className="button button-ghost"
-            style={listColumnStyles.actionButton}
-            onClick={onMoveRight}
-            disabled={listIndex === listsLength - 1}
-          >
-            →
-          </button>
-        </div>
         <button
           className="button button-ghost"
           style={listColumnStyles.actionButton}

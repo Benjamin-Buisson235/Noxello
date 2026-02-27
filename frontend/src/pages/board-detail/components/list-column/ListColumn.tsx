@@ -57,10 +57,6 @@ function ListColumn({
     >
       <ListHeader
         title={list.title}
-        listIndex={listIndex}
-        listsLength={lists.length}
-        onMoveLeft={() => handleReorderLists(list.id, 'left')}
-        onMoveRight={() => handleReorderLists(list.id, 'right')}
         onRename={(event) => handleRenameList(event, list.id, list.title)}
         onDelete={(event) => handleDeleteList(event, list.id, list.title)}
         dragAttributes={attributes}
