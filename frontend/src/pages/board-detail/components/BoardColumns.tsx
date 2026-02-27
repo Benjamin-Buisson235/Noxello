@@ -8,7 +8,6 @@ type BoardColumnsProps = {
   lists: any[];
   activeCardListId: number | null;
   newCardTitleByList: Record<number, string>;
-  handleReorderLists: (listId: number, direction: 'left' | 'right') => void;
   handleRenameList: (event: React.MouseEvent, listId: number, title: string) => void;
   handleDeleteList: (event: React.MouseEvent, listId: number, title: string) => void;
   onOpenCardDetails: (card: any, listId: number) => void;
@@ -30,7 +29,6 @@ function BoardColumns({
   lists,
   activeCardListId,
   newCardTitleByList,
-  handleReorderLists,
   handleRenameList,
   handleDeleteList,
   onOpenCardDetails,
@@ -69,15 +67,12 @@ function BoardColumns({
           items={filteredLists.map((list: any) => toListDndId(list.id))}
           strategy={horizontalListSortingStrategy}
         >
-          {filteredLists.map((list: any, listIndex: number) => (
+          {filteredLists.map((list: any) => (
             <ListColumn
               key={list.id}
               list={list}
-              listIndex={listIndex}
-              lists={lists}
               activeCardListId={activeCardListId}
               newCardTitle={newCardTitleByList[list.id] || ''}
-              handleReorderLists={handleReorderLists}
               handleRenameList={handleRenameList}
               handleDeleteList={handleDeleteList}
               onOpenCardDetails={onOpenCardDetails}

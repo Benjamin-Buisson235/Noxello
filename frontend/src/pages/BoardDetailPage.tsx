@@ -57,7 +57,6 @@ function BoardDetailPage() {
     handleRenameList,
     confirmRenameList,
     cancelRenameList,
-    handleReorderLists,
     handleDeleteList,
     confirmDeleteList,
     cancelDeleteList,
@@ -354,7 +353,6 @@ function BoardDetailPage() {
               lists={lists}
               activeCardListId={activeCardListId}
               newCardTitleByList={newCardTitleByList}
-              handleReorderLists={handleReorderLists}
               handleRenameList={handleRenameList}
               handleDeleteList={handleDeleteList}
               onOpenCardDetails={openCardDetails}

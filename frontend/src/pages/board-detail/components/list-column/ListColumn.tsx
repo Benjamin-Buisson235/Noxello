@@ -12,11 +12,8 @@ import { listColumnStyles } from './styles';
 
 type ListColumnProps = {
   list: any;
-  listIndex: number;
-  lists: any[];
   activeCardListId: number | null;
   newCardTitle: string;
-  handleReorderLists: (listId: number, direction: 'left' | 'right') => void;
   handleRenameList: (event: MouseEvent, listId: number, title: string) => void;
   handleDeleteList: (event: MouseEvent, listId: number, title: string) => void;
   onOpenCardDetails: (card: any, listId: number) => void;
@@ -28,11 +25,8 @@ type ListColumnProps = {
 
 function ListColumn({
   list,
-  listIndex,
-  lists,
   activeCardListId,
   newCardTitle,
-  handleReorderLists,
   handleRenameList,
   handleDeleteList,
   onOpenCardDetails,

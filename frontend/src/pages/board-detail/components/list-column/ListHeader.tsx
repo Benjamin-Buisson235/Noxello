@@ -1,12 +1,12 @@
-import type { MouseEvent } from 'react';
+import type { HTMLAttributes, MouseEvent } from 'react';
 import { listColumnStyles } from './styles';
 
 type ListHeaderProps = {
   title: string;
   onRename: (event: MouseEvent) => void;
   onDelete: (event: MouseEvent) => void;
-  dragAttributes?: Record<string, unknown>;
-  dragListeners?: Record<string, unknown>;
+  dragAttributes?: HTMLAttributes<HTMLHeadingElement>;
+  dragListeners?: HTMLAttributes<HTMLHeadingElement>;
 };
 
 function ListHeader({
