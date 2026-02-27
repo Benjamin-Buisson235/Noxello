@@ -59,9 +59,6 @@ function BoardCard({ board, index, isOwner, onOpen, onRename, onDelete }: BoardC
           >
             {isOwner ? 'Owned' : 'Shared'}
           </span>
-          <p style={{ margin: 0, fontSize: 11, color: 'rgba(226,232,240,0.9)' }}>
-            Position: {index}
-          </p>
           <p
             style={{
               margin: 0,
