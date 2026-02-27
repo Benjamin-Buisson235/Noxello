@@ -339,25 +339,6 @@ function BoardDetailPage() {
         <div className="boards-page">
           <BoardHeader board={board} onMembers={openMembers} />
 
-          <FiltersPanel
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            dateFilter={dateFilter}
-            onDateFilterChange={setDateFilter}
-            boardLabels={boardLabels}
-            filterLabelIds={filterLabelIds}
-            onLabelFilterChange={(labelId) =>
-              setFilterLabelIds(labelId == null ? [] : [labelId])
-            }
-            filtersActive={filtersActive}
-            resultCount={resultCount}
-            onClearFilters={() => {
-              setSearchQuery('');
-              setDateFilter('all');
-              setFilterLabelIds([]);
-            }}
-          />
-
           <DndContext
             sensors={sensors}
             collisionDetection={collisionDetection}
@@ -394,6 +375,25 @@ function BoardDetailPage() {
               <DragPreview card={activeDragCard} />
             </DragOverlay>
           </DndContext>
+
+          <FiltersPanel
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            dateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+            boardLabels={boardLabels}
+            filterLabelIds={filterLabelIds}
+            onLabelFilterChange={(labelId) =>
+              setFilterLabelIds(labelId == null ? [] : [labelId])
+            }
+            filtersActive={filtersActive}
+            resultCount={resultCount}
+            onClearFilters={() => {
+              setSearchQuery('');
+              setDateFilter('all');
+              setFilterLabelIds([]);
+            }}
+          />
 
           <ArchivedSection lists={archivedLists} onOpenCardDetails={openCardDetails} />
 

@@ -5,7 +5,7 @@ type ArchivedSectionProps = {
 
 function ArchivedSection({ lists, onOpenCardDetails }: ArchivedSectionProps) {
   return (
-    <section className="card" style={{ marginTop: 16 }}>
+    <section className="card" style={{ marginTop: 24 }}>
       <h2 style={{ marginTop: 0, fontSize: 18 }}>Archived cards</h2>
       {lists.length === 0 ? (
         <p className="text-muted" style={{ marginTop: 4 }}>
