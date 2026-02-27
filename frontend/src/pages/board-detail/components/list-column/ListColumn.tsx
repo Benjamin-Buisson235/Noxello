@@ -62,7 +62,7 @@ function ListColumn({
         onDelete={(event) => handleDeleteList(event, list.id, list.title)}
       />
 
-      <ListMeta position={list.position} createdAt={list.createdAt} />
+      <ListMeta createdAt={list.createdAt} />
 
       <SortableContext
         items={cards.map((card: any) => toCardDndId(card.id))}
