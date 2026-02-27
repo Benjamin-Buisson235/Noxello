@@ -44,13 +44,13 @@ export const useBoardData = ({ boardId, user }: UseBoardDataParams): UseBoardDat
         setLists(res.data.lists || []);
       } catch (err: any) {
         console.error('Fetch board full error ====>', err);
-        if (!silent) {
-          const status = err?.response?.status;
-          if (status === 404) {
-            setError("You don't have permission to view this board.");
-          } else {
-            setError('Unable to load this board.');
-          }
+        const status = err?.response?.status;
+        if (status === 404 || status === 403) {
+          setError("You don't have permission to view this board.");
+          setBoard(null);
+          setLists([]);
+        } else if (!silent) {
+          setError('Unable to load this board.');
         }
       } finally {
         if (!silent) {

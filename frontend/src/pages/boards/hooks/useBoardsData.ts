@@ -31,7 +31,7 @@ type UseBoardsDataResult = {
   handleDeleteBoard: (event: MouseEvent, id: number) => void;
   confirmDeleteBoard: () => Promise<void>;
   cancelDeleteBoard: () => void;
-  handleAcceptInvite: (inviteId: number) => Promise<void>;
+  handleAcceptInvite: (inviteId: number) => Promise<number | null>;
   handleDeclineInvite: (inviteId: number) => Promise<void>;
 };
 
@@ -223,13 +223,15 @@ export const useBoardsData = ({ user }: UseBoardsDataParams): UseBoardsDataResul
 
   const handleAcceptInvite = useCallback(async (inviteId: number) => {
     try {
-      await api.post(`/boards/invites/${inviteId}/accept`);
+      const res = await api.post(`/boards/invites/${inviteId}/accept`);
       setInvites((prev) => prev.filter((invite: any) => invite.id !== inviteId));
-      const res = await api.get('/boards');
-      setBoards(res.data.boards || []);
+      const boardsRes = await api.get('/boards');
+      setBoards(boardsRes.data.boards || []);
+      return res.data?.boardId ?? null;
     } catch (err) {
       console.error('Accept invite error ====>', err);
       setInvitesError('Unable to accept invite.');
+      return null;
     }
   }, []);
 

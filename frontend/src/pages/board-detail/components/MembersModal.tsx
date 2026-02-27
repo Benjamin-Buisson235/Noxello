@@ -12,6 +12,8 @@ type MembersModalProps = {
   onInviteEmailChange: (value: string) => void;
   onInviteSubmit: (event: FormEvent) => void;
   onRemoveMember: (userId: number) => void;
+  onLeaveBoard: () => void;
+  onDeleteBoard: () => void;
   onClose: () => void;
   overlayStyle: CSSProperties;
   dialogStyle: CSSProperties;
@@ -30,6 +32,8 @@ function MembersModal({
   onInviteEmailChange,
   onInviteSubmit,
   onRemoveMember,
+  onLeaveBoard,
+  onDeleteBoard,
   onClose,
   overlayStyle,
   dialogStyle,
@@ -146,6 +150,15 @@ function MembersModal({
         )}
 
         <div style={dialogButtonsStyle}>
+          {!isOwner ? (
+            <button className="button button-primary" type="button" onClick={onLeaveBoard}>
+              Leave
+            </button>
+          ) : (
+            <button className="button button-primary" type="button" onClick={onDeleteBoard}>
+              Delete
+            </button>
+          )}
           <button className="button button-ghost" type="button" onClick={onClose}>
             Close
           </button>
