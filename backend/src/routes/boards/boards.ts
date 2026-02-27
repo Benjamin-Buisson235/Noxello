@@ -198,6 +198,16 @@ export const registerBoardRoutes = (router: Router) => {
       }
 
       await prisma.$transaction([
+        prisma.cardLabel.deleteMany({
+          where: { card: { list: { boardId: board.id } } },
+        }),
+        prisma.checklistItem.deleteMany({
+          where: { card: { list: { boardId: board.id } } },
+        }),
+        prisma.comment.deleteMany({
+          where: { card: { list: { boardId: board.id } } },
+        }),
+        prisma.card.deleteMany({ where: { list: { boardId: board.id } } }),
         prisma.label.deleteMany({ where: { boardId: board.id } }),
         prisma.list.deleteMany({ where: { boardId: board.id } }),
         prisma.board.delete({ where: { id: board.id } }),
