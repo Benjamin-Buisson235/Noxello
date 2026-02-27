@@ -17,13 +17,13 @@ Noxello est une application de gestion de projets inspirée de Trello. L’objec
 
 ### Listes (Colonnes)
 - Créer, renommer, supprimer une liste
-- Réordonner les listes
+- Réordonner les listes (drag & drop)
 
 ### Cartes
 - Créer, renommer, supprimer une carte
 - Réordonner les cartes
 - Déplacer des cartes entre listes
-- Drag & drop fluide avec aperçu
+- Drag & drop fluide avec aperçu (cartes + listes)
 
 ### Détails d’une carte
 - Titre + description
@@ -65,7 +65,6 @@ Noxello est une application de gestion de projets inspirée de Trello. L’objec
 - Déploiement opérationnel (Vercel + Render)
 
 ## 5) Idées d’évolution (roadmap)
-- Drag & drop des listes
 - Notifications en temps réel (WebSocket)
 - Mentions dans les commentaires
 - Rôles avancés (admin, éditeur, lecteur)
@@ -74,4 +73,3 @@ Noxello est une application de gestion de projets inspirée de Trello. L’objec
 - Recherche globale multi‑boards
 - Thèmes personnalisés
 - Export CSV / PDF
-

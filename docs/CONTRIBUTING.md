@@ -40,7 +40,9 @@ There is no automated test suite yet. Please do manual checks:
 - Auth flow (register/login)
 - Boards list
 - Board detail with lists and cards
+- Drag & drop for cards and lists
 - Card modal (details, labels, checklist, comments)
+- Members + invites
 
 ## Submitting Changes
 1. Push your branch.

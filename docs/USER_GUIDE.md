@@ -17,21 +17,21 @@ Welcome to Noxello. This guide covers the core workflows: boards, lists, cards, 
 Inside a board:
 - **Add a list**: Use the “Add list” area.
 - **Rename**: Click Rename on the list header.
-- **Reorder**: Use left/right arrows to move lists.
+- **Reorder**: Drag a list by its title.
 - **Delete**: Delete list (confirmation required).
 
 ## 4) Cards
 Inside a list:
 - **Add a card**: Click “+ Add a card”, type a title, press Enter.
-- **Open details**: Click a card (especially in DnD mode).
-- **Move between lists**: Use left/right buttons or drag & drop.
-- **Reorder**: Use up/down buttons or drag & drop.
+- **Open details**: Click a card.
+- **Move between lists**: Drag & drop.
+- **Reorder**: Drag & drop within the list.
 - **Delete**: Use Delete (confirmation required).
 
 ## 5) Drag & Drop
 - Drag cards within a list or across lists.
+- Drag lists to reorder columns.
 - The UI previews the target position.
-- If dragging is disabled, use the movement buttons instead.
 
 ## 6) Card Details
 Open any card to edit:
@@ -76,6 +76,7 @@ Open any card to edit:
 - Members can view the board and collaborate.
 - Owners can remove members.
 - Invitations can be accepted or declined.
+- Invites are available from the left sidebar on any page.
 
 ## 13) Settings
 - Update your profile name in Settings.
