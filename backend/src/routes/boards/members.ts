@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../prisma';
 import { AuthRequest } from '../../authMiddleware';
-import { getOwnedBoard } from './utils';
+import { getAccessibleBoard, getOwnedBoard } from './utils';
 
 export const registerMemberRoutes = (router: Router) => {
   router.get('/:id/members', async (req: AuthRequest, res) => {
@@ -113,6 +113,32 @@ export const registerMemberRoutes = (router: Router) => {
       const userId = req.userId!;
       const boardId = Number(req.params.id);
       const memberUserId = Number(req.params.userId);
+
+      if (Number.isNaN(boardId) || Number.isNaN(memberUserId)) {
+        return res.status(400).json({ message: 'Invalid board or member id' });
+      }
+
+      if (memberUserId === userId) {
+        const board = await getAccessibleBoard(boardId, userId);
+        if (!board) {
+          return res.status(404).json({ message: 'Board not found' });
+        }
+        if (board.ownerId === userId) {
+          return res.status(400).json({ message: 'Cannot remove the owner' });
+        }
+
+        const membership = await prisma.boardMember.findFirst({
+          where: { boardId, userId },
+        });
+        if (!membership) {
+          return res.status(404).json({ message: 'Member not found' });
+        }
+
+        await prisma.boardMember.delete({
+          where: { boardId_userId: { boardId, userId } },
+        });
+        return res.status(204).send();
+      }
 
       const board = await getOwnedBoard(boardId, userId);
       if (!board) {

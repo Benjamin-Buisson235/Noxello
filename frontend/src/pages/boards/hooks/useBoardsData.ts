@@ -14,7 +14,12 @@ type UseBoardsDataResult = {
   invitesError: string;
   loadingBoards: boolean;
   loadingInvites: boolean;
-  boardToDelete: number | null;
+  boardToDelete: {
+    id: number;
+    title: string;
+    isOwner: boolean;
+    collaboratorsCount: number;
+  } | null;
   boardToRename: { id: number; title: string } | null;
   renameValue: string;
   setNewTitle: (value: string) => void;
@@ -38,7 +43,12 @@ export const useBoardsData = ({ user }: UseBoardsDataParams): UseBoardsDataResul
   const [loadingBoards, setLoadingBoards] = useState(true);
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [invitesError, setInvitesError] = useState('');
-  const [boardToDelete, setBoardToDelete] = useState<number | null>(null);
+  const [boardToDelete, setBoardToDelete] = useState<{
+    id: number;
+    title: string;
+    isOwner: boolean;
+    collaboratorsCount: number;
+  } | null>(null);
   const [boardToRename, setBoardToRename] = useState<
     { id: number; title: string } | null
   >(null);
@@ -160,23 +170,52 @@ export const useBoardsData = ({ user }: UseBoardsDataParams): UseBoardsDataResul
     setRenameValue('');
   }, []);
 
-  const handleDeleteBoard = useCallback((event: MouseEvent, id: number) => {
-    event.stopPropagation();
-    setBoardToDelete(id);
-  }, []);
+  const handleDeleteBoard = useCallback(
+    async (event: MouseEvent, id: number) => {
+      event.stopPropagation();
+      const target = boards.find((board: any) => board.id === id);
+      if (!target || !user) return;
+      const isOwner = target.ownerId === user.id;
+      setBoardToDelete({
+        id,
+        title: target.title,
+        isOwner,
+        collaboratorsCount: 0,
+      });
+      if (!isOwner) return;
+      try {
+        const res = await api.get(`/boards/${id}/members`);
+        const members = res.data.members || [];
+        const collaboratorsCount = Math.max(0, members.length - 1);
+        setBoardToDelete({
+          id,
+          title: target.title,
+          isOwner,
+          collaboratorsCount,
+        });
+      } catch (err) {
+        console.error('Fetch members error ====>', err);
+      }
+    },
+    [boards, user]
+  );
 
   const confirmDeleteBoard = useCallback(async () => {
-    if (boardToDelete == null) return;
+    if (!boardToDelete || !user) return;
     try {
-      await api.delete(`/boards/${boardToDelete}`);
-      setBoards((prev) => prev.filter((board: any) => board.id !== boardToDelete));
+      if (boardToDelete.isOwner) {
+        await api.delete(`/boards/${boardToDelete.id}`);
+      } else {
+        await api.delete(`/boards/${boardToDelete.id}/members/${user.id}`);
+      }
+      setBoards((prev) => prev.filter((board: any) => board.id !== boardToDelete.id));
     } catch (err) {
       console.error('Delete board error ====>', err);
-      setError('Unable to delete board.');
+      setError(boardToDelete.isOwner ? 'Unable to delete board.' : 'Unable to leave board.');
     } finally {
       setBoardToDelete(null);
     }
-  }, [boardToDelete]);
+  }, [boardToDelete, user]);
 
   const cancelDeleteBoard = useCallback(() => {
     setBoardToDelete(null);

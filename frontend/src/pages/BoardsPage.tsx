@@ -117,9 +117,15 @@ function BoardsPage() {
 
       <ConfirmDialog
         open={boardToDelete != null}
-        title="Delete board"
-        description="Delete this board and all of its lists/cards?"
-        confirmLabel="Delete"
+        title={boardToDelete?.isOwner ? 'Delete board?' : 'Leave board?'}
+        description={
+          boardToDelete?.isOwner
+            ? `Do you want to delete this board? There are currently ${
+                boardToDelete.collaboratorsCount
+              } people collaborating with you on it, and all of its lists/cards?`
+            : 'Do you want to leave this collaborative board?'
+        }
+        confirmLabel={boardToDelete?.isOwner ? 'Delete' : 'Leave'}
         onConfirm={confirmDeleteBoard}
         onCancel={cancelDeleteBoard}
         overlayStyle={overlayStyle}
