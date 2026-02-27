@@ -9,6 +9,8 @@ type ListHeaderProps = {
   onMoveRight: () => void;
   onRename: (event: MouseEvent) => void;
   onDelete: (event: MouseEvent) => void;
+  dragAttributes?: Record<string, unknown>;
+  dragListeners?: Record<string, unknown>;
 };
 
 function ListHeader({
@@ -19,10 +21,18 @@ function ListHeader({
   onMoveRight,
   onRename,
   onDelete,
+  dragAttributes,
+  dragListeners,
 }: ListHeaderProps) {
   return (
     <div style={listColumnStyles.header}>
-      <h3 style={listColumnStyles.title}>{title}</h3>
+      <h3
+        style={{ ...listColumnStyles.title, cursor: 'grab' }}
+        {...dragAttributes}
+        {...dragListeners}
+      >
+        {title}
+      </h3>
       <div style={listColumnStyles.actionsRow}>
         <div style={listColumnStyles.actionsGroup}>
           <button

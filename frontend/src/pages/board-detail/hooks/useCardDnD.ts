@@ -55,6 +55,12 @@ export const useCardDnD = ({
     cards.map((card: any, index: number) => ({ ...card, position: index }));
 
   const handleDragStart = (event: any) => {
+    const activeListId = parseListId(event.active.id);
+    if (activeListId !== null) {
+      setActiveDragCardId(null);
+      setActiveDragListId(activeListId);
+      return;
+    }
     const activeCardId = parseCardId(event.active.id);
     if (activeCardId === null) return;
     setActiveDragCardId(activeCardId);
@@ -68,6 +74,34 @@ export const useCardDnD = ({
       const { active, over } = event;
       if (!over) {
         fetchBoardFull({ silent: true });
+        return;
+      }
+
+      const activeListId = parseListId(active.id);
+      if (activeListId !== null) {
+        const overCardId = parseCardId(over.id);
+        const overListId =
+          parseListId(over.id) ?? (overCardId != null ? findListByCardId(overCardId)?.id : null);
+        if (overListId == null) return;
+        if (activeListId === overListId) return;
+
+        const sourceIndex = lists.findIndex((list: any) => list.id === activeListId);
+        const destinationIndex = lists.findIndex((list: any) => list.id === overListId);
+        if (sourceIndex === -1 || destinationIndex === -1) return;
+
+        const reordered = arrayMove(lists, sourceIndex, destinationIndex).map(
+          (list: any, index: number) => ({ ...list, position: index })
+        );
+        setLists(reordered);
+
+        try {
+          await api.patch(`/boards/${boardId}/lists/reorder`, {
+            orderedListIds: reordered.map((list: any) => list.id),
+          });
+        } catch (err) {
+          console.error('Drag reorder lists error ====>', err);
+          fetchBoardFull({ silent: true });
+        }
         return;
       }
 

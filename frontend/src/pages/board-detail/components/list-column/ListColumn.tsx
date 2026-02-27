@@ -1,6 +1,7 @@
 import type { FormEvent, MouseEvent } from 'react';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { toCardDndId } from '../../utils';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { toCardDndId, toListDndId } from '../../utils';
 import CardsDropzone from '../CardsDropzone';
 import SortableCard from '../SortableCard';
 import AddCardButton from './AddCardButton';
@@ -41,9 +42,19 @@ function ListColumn({
   onChangeCardTitle,
 }: ListColumnProps) {
   const cards = list.cards || [];
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: toListDndId(list.id) });
 
   return (
-    <div style={listColumnStyles.column}>
+    <div
+      ref={setNodeRef}
+      style={{
+        ...listColumnStyles.column,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.75 : 1,
+      }}
+    >
       <ListHeader
         title={list.title}
         listIndex={listIndex}
@@ -52,6 +63,8 @@ function ListColumn({
         onMoveRight={() => handleReorderLists(list.id, 'right')}
         onRename={(event) => handleRenameList(event, list.id, list.title)}
         onDelete={(event) => handleDeleteList(event, list.id, list.title)}
+        dragAttributes={attributes}
+        dragListeners={listeners}
       />
 
       <ListMeta createdAt={list.createdAt} />

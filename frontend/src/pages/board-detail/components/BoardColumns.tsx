@@ -1,4 +1,6 @@
 import type { FormEvent, RefObject } from 'react';
+import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { toListDndId } from '../utils';
 import ListColumn from './ListColumn';
 
 type BoardColumnsProps = {
@@ -63,24 +65,29 @@ function BoardColumns({
           marginTop: 8,
         }}
       >
-        {filteredLists.map((list: any, listIndex: number) => (
-          <ListColumn
-            key={list.id}
-            list={list}
-            listIndex={listIndex}
-            lists={lists}
-            activeCardListId={activeCardListId}
-            newCardTitle={newCardTitleByList[list.id] || ''}
-            handleReorderLists={handleReorderLists}
-            handleRenameList={handleRenameList}
-            handleDeleteList={handleDeleteList}
-            onOpenCardDetails={onOpenCardDetails}
-            onAddCard={onAddCard}
-            onOpenAddCard={onOpenAddCard}
-            onCancelAddCard={onCancelAddCard}
-            onChangeCardTitle={onChangeCardTitle}
-          />
-        ))}
+        <SortableContext
+          items={filteredLists.map((list: any) => toListDndId(list.id))}
+          strategy={horizontalListSortingStrategy}
+        >
+          {filteredLists.map((list: any, listIndex: number) => (
+            <ListColumn
+              key={list.id}
+              list={list}
+              listIndex={listIndex}
+              lists={lists}
+              activeCardListId={activeCardListId}
+              newCardTitle={newCardTitleByList[list.id] || ''}
+              handleReorderLists={handleReorderLists}
+              handleRenameList={handleRenameList}
+              handleDeleteList={handleDeleteList}
+              onOpenCardDetails={onOpenCardDetails}
+              onAddCard={onAddCard}
+              onOpenAddCard={onOpenAddCard}
+              onCancelAddCard={onCancelAddCard}
+              onChangeCardTitle={onChangeCardTitle}
+            />
+          ))}
+        </SortableContext>
         <div
           style={{
             minWidth: 220,
