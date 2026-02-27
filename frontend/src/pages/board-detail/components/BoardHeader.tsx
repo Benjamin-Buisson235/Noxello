@@ -1,11 +1,9 @@
 type BoardHeaderProps = {
   board: any;
-  onBack: () => void;
   onMembers: () => void;
-  onLogout: () => void;
 };
 
-function BoardHeader({ board, onBack, onMembers, onLogout }: BoardHeaderProps) {
+function BoardHeader({ board, onMembers }: BoardHeaderProps) {
   return (
     <header className="boards-header">
       <div>
@@ -19,14 +17,8 @@ function BoardHeader({ board, onBack, onMembers, onLogout }: BoardHeaderProps) {
         </p>
       </div>
       <div className="boards-toolbar">
-        <button className="button button-ghost" onClick={onBack}>
-          Back to boards
-        </button>
         <button className="button button-ghost" onClick={onMembers}>
           Members
-        </button>
-        <button className="button button-ghost" onClick={onLogout}>
-          Logout
         </button>
       </div>
     </header>
