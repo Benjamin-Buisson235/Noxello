@@ -20,11 +20,10 @@ function BoardsGrid({ boards, loading, userId, onOpen, onRename, onDelete }: Boa
         <p className="text-muted">No boards yet. Create one above to get started.</p>
       ) : (
         <div className="boards-grid">
-          {boards.map((board: any, index: number) => (
+          {boards.map((board: any) => (
             <BoardCard
               key={board.id}
               board={board}
-              index={index}
               isOwner={board.ownerId === userId}
               onOpen={() => onOpen(board.id)}
               onRename={(event) => onRename(event, board.id, board.title)}

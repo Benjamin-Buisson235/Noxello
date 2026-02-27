@@ -2,14 +2,13 @@ import type { MouseEvent } from 'react';
 
 type BoardCardProps = {
   board: any;
-  index: number;
   isOwner: boolean;
   onOpen: () => void;
   onRename: (event: MouseEvent) => void;
   onDelete: (event: MouseEvent) => void;
 };
 
-function BoardCard({ board, index, isOwner, onOpen, onRename, onDelete }: BoardCardProps) {
+function BoardCard({ board, isOwner, onOpen, onRename, onDelete }: BoardCardProps) {
   return (
     <div
       className="board-card"
